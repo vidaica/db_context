@@ -36,8 +36,7 @@ class ActiveRecord::Base
     
   end
   
-  private
-  
+  private  
   
   def define_random_update_n_associates(method_name, matches)
     

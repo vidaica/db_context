@@ -28,7 +28,7 @@ Gem::Specification.new do |spec|
   spec.add_development_dependency "mysql2", "0.3.11"
   spec.add_development_dependency "standalone_migrations", "2.0.4"
   spec.add_development_dependency "rails", "3.2.13"
-  spec.add_development_dependency "rspec", "2.11.0"
+  spec.add_development_dependency "rspec", "2.9.0"  
   spec.add_development_dependency "database_cleaner", "0.9.1"
     
 end

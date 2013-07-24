@@ -29,7 +29,7 @@ class Array
     
     return_associate_objects ? associate_objects : self
     
-  end   
+  end  
   
   private   
   
@@ -125,30 +125,28 @@ class Array
     associate = matches[2]
     
     self.class.class_eval do
-      
-      define_method method_name do |factory = nil, return_what = :self|
+            
+      define_method method_name do | *args |
+               
+        options = args[-1].is_a?(Hash) ? args[-1] : {}               
         
-        real_factory = return_next_symbols.include?(factory) ? nil : factory
+        directives = args[-1].is_a?(Hash) ? args[0...-1] : args                       
         
-        associate_objects = []               
+        factory = ( options[:factory].nil? ? associate.singularize : options[:factory] ).to_sym
+                                      
+        delete_existing_associate_objects(associate)         
         
-        self.each do |object|
+        if ! directives.include? :girl
           
-          number_of_associate_objects.times do
-            associate_object = FactoryGirl.build ( real_factory.nil? ? associate.singularize : real_factory ).to_sym
-            associate_object.send( "#{associate_foreign_key(associate)}=", object.id )
-            associate_objects << associate_object           
-          end                  
+          create_associate_objects_for_each_item_by_import(number_of_associate_objects, associate, factory, directives.include?(:skip_validation) )
+                                 
+        else
           
-        end              
-                
-        associate_class(associate)
-        .where([" #{associate_foreign_key(associate)} IN (?)", self.map(&:id) ])
-        .delete_all
-                        
-        associate_class(associate).import associate_objects               
-        
-        if ( [factory, return_what] & return_next_symbols ).any?
+          create_associate_objects_for_each_item_by_factory_girl(number_of_associate_objects, associate, factory)         
+                            
+        end
+                       
+        if ( directives & return_next_symbols ).any?
           associate_class(associate)
           .where([" #{associate_foreign_key(associate)} IN (?)", self.map(&:id) ])
           .order("id asc")
@@ -163,6 +161,51 @@ class Array
     
   end
   
+  
+  def create_associate_objects_for_each_item_by_import(number_of_associate_objects, associate, factory, skip_validation)
+    
+    associate_objects = []
+    
+    self.each do |object|
+            
+      number_of_associate_objects.times do
+        associate_object = FactoryGirl.build factory
+        associate_object.send( "#{associate_foreign_key(associate)}=", object.id )
+        associate_objects << associate_object           
+      end                  
+      
+    end               
+    
+    options = {:validate => ! skip_validation }
+                                                                
+    result = associate_class(associate).import associate_objects, options                             
+
+    if result.failed_instances.count > 0
+      raise FailedImportError, "Import failed for some reason, most likely because of active record validation"
+    end
+    
+  end
+  
+  def create_associate_objects_for_each_item_by_factory_girl(number_of_associate_objects, associate, factory)
+    
+    self.each do |object|
+            
+      number_of_associate_objects.times do
+        
+        FactoryGirl.create factory, associate_foreign_key(associate).to_sym => object.id
+        
+      end                  
+      
+    end
+    
+  end
+  
+  def delete_existing_associate_objects(associate)
+    associate_class(associate)
+      .where([" #{associate_foreign_key(associate)} IN (?)", self.map(&:id) ])
+      .delete_all
+  end  
+  
   def associate_foreign_key(associate)
     reflection(associate).foreign_key
   end
@@ -176,7 +219,10 @@ class Array
   end
   
   def return_next_symbols
-    [:here]
+    [:here, :next]
   end
   
+end
+
+class FailedImportError < Exception
 end
