@@ -15,6 +15,7 @@ ActiveRecord::Schema.define(:version => 20130723091524) do
 
   create_table "children", :force => true do |t|
     t.integer "father_id"
+    t.integer "foster_father_id"
     t.string  "name"
   end
 
