@@ -2,6 +2,8 @@ module DbContext
   
   module MethodDefiner
     
+    attr_accessor :directives, :associate, :options
+    
     alias_method :method_missing_before_db_context, :method_missing
     
     private
@@ -22,7 +24,43 @@ module DbContext
       method_missing_before_db_context(method_name, *args, &block)
       
     end
-     
+    
+    def insertion_using_import?
+      ! directives.include? :girl
+    end
+    
+    def split_arguments(args)                
+      directives = args[-1].is_a?(Hash) ? args[0...-1] : args
+      options = args[-1].is_a?(Hash) ? args[-1] : {}
+      [directives, options]
+    end 
+    
+    def split_arguments(args)                
+      directives = args[-1].is_a?(Hash) ? args[0...-1] : args
+      options = args[-1].is_a?(Hash) ? args[-1] : {}
+      [directives, options]
+    end     
+    
+    def associate_foreign_key()
+      reflection.foreign_key
+    end
+    
+    def associate_class()
+      reflection.klass
+    end  
+      
+    def return_next_symbols
+      [:here, :next]
+    end
+    
+    def factory()
+      ( options[:factory].nil? ? associate.singularize : options[:factory] ).to_sym
+    end
+    
+    def return_self?
+      ! (directives & return_next_symbols).any?
+    end
+         
   end
 
 end

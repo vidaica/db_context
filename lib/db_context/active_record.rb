@@ -5,9 +5,9 @@ class ActiveRecord::Base
   def method_missing(method_name, *args, &block)                         
     
     definers = {
-      /^has_(\d+)_([a-zA-Z]+)$/             => 'define_has_n_associates',
-      /^random_update_(\d+)_([a-zA-Z]+)$/   => 'define_random_update_n_associates',
-      /^has_([a-zA-Z]+)$/                   => 'define_has_associates'
+      /^has_(\d+)_([a-zA-Z]+)$/             => 'has_n_associates',
+      /^random_update_(\d+)_([a-zA-Z]+)$/   => 'random_update_n_associates',
+      /^has_([a-zA-Z]+)$/                   => 'has_associates'
     }
     
     define_missing_method( method_name, definers, *args, &block )            
@@ -38,13 +38,15 @@ class ActiveRecord::Base
   
   private  
   
-  def define_random_update_n_associates(method_name, matches)
+  def random_update_n_associates(method_name, matches)
     
     self.class.class_eval do
       
       define_method method_name do |*args|
           
         [self].send(method_name,*args)
+        
+        self
         
       end
     
@@ -53,15 +55,25 @@ class ActiveRecord::Base
   end
   
   
-  def define_has_associates(method_name, matches)      
-    
-    associate = matches[1]
+  def has_associates(method_name, matches)      
     
     self.class.class_eval do
       
-      define_method method_name do |data, factory = nil, return_what = :self|
+      define_method method_name do |data, *args|
         
-        create_associates(associate, data, factory, return_what)               
+        self.associate = matches[1]
+            
+        self.directives, self.options = split_arguments(args)
+        
+        if insertion_using_import?
+        
+          create_associate_objects_by_import(data)
+        
+        else
+          
+          create_associate_objects_by_factory_girl(data)
+          
+        end
         
       end
       
@@ -70,17 +82,17 @@ class ActiveRecord::Base
   end        
   
   
-  def define_has_n_associates(method_name, matches)
-    
-    number_of_associate_objects = matches[1].to_i
-    
-    associate = matches[2]    
+  def has_n_associates(method_name, matches)     
     
     self.class.class_eval do
       
-      define_method method_name do |factory = nil, return_what = :self|
+      define_method method_name do |*args|
         
-        create_associates(associate, number_of_associate_objects, factory, return_what)                               
+        self.directives, self.options = split_arguments(args)
+        
+        result = [self].send(method_name,*args)
+        
+        return_self? ? result.first : result                 
         
       end
       
@@ -89,57 +101,39 @@ class ActiveRecord::Base
   end
   
   
-  def create_associates(associate, data, factory, return_what)
+  def create_associate_objects_by_import(data)                        
     
-    return_associate_objects = ([factory, return_what] & return_next_symbols ).any?        
-                        
-    factory = ( return_next_symbols.include?(factory) || factory.nil? ) ? associate.singularize.to_sym : factory
-    
-    associate_objects = []
-    
-    data = data.class == Fixnum ? [{}]*data : data
+    associate_objects = []        
     
     data.each do |data_item|
       associate_object = FactoryGirl.build factory, data_item
-      associate_object.send( "#{associate_foreign_key(associate)}=", self.id )
+      associate_object.send( "#{associate_foreign_key}=", self.id )
       associate_objects << associate_object            
     end     
             
-    delete_existing_associate_objects associate
+    delete_existing_associate_objects
             
-    import_associate_objects associate, associate_objects
+    import_associate_objects associate_objects
     
-    if return_associate_objects
-      associate_class(associate).where([" #{associate_foreign_key(associate)} = (?)", self.id ]).to_a
-    else
-      self
-    end
+    return_self? ? self : associate_class.where([" #{associate_foreign_key} = (?)", self.id ]).to_a      
     
-  end   
-  
-  def associate_foreign_key(associate)
-    reflection(associate).foreign_key
   end
   
-  def associate_class(associate)
-    reflection(associate).klass
+  def create_associate_objects_by_factory_girl(data)
+    
   end  
-  
-  def reflection(associate)
+    
+  def reflection()
     self.class.reflections[associate.to_sym]
   end
   
-  def import_associate_objects(associate, associate_objects)
-    associate_class(associate).import associate_objects
+  def import_associate_objects(associate_objects)
+    associate_class.import associate_objects
   end  
   
-  def delete_existing_associate_objects(associate)
-    associate_class(associate).where([" #{associate_foreign_key(associate)} = (?)", self.id ]).delete_all
-  end
-  
-  def return_next_symbols
-    [:here]
-  end
+  def delete_existing_associate_objects()
+    associate_class.where([" #{associate_foreign_key} = (?)", self.id ]).delete_all
+  end  
   
 end
 

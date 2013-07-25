@@ -121,7 +121,7 @@ describe Array do
     
     it 'does not cause associate objects getting cached' do
       [nil, :girl].each do |insertion_method|
-        @father = Father.one
+        @father = FactoryGirl.create :father
         [@father].has_3_children insertion_method
         (FactoryGirl.create :child, name:'outlaw child', father_id: @father.id)
         @father.children.detect{|child| child.name == 'outlaw child' }.should_not be_nil
@@ -157,11 +157,7 @@ describe Array do
         expect{ @fathers.has_3_children :skip_validation, :factory => :invalid_child }.not_to raise_exception(FailedImportError)
       end
       
-    end
-    
-    describe 'using factory_girl for database insertion' do
-                                         
-    end
+    end       
     
   end
    
@@ -224,6 +220,15 @@ describe Array do
       end
     end
     
+    it 'does not cause associate objects getting cached' do
+      [nil, :girl].each do |insertion_method|
+        @father = FactoryGirl.create :father
+        [@father].each_has_3_children insertion_method
+        (FactoryGirl.create :child, name:'outlaw child', father_id: @father.id)
+        @father.children.detect{|child| child.name == 'outlaw child' }.should_not be_nil
+      end
+    end
+    
     describe 'using activerecord_import for database insertion' do
                             
       it 'activates validation by default' do
@@ -234,11 +239,7 @@ describe Array do
         expect{ @fathers.each_has_3_children :skip_validation, :factory => :invalid_child }.not_to raise_exception(FailedImportError)
       end
                  
-    end
-        
-    describe 'using factory_girl for database insertion' do                      
-      
-    end            
+    end                  
                      
   end
     

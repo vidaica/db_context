@@ -1,6 +1,4 @@
-class Array
-  
-  attr_accessor :directives, :associate, :options
+class Array   
        
   include DbContext::MethodDefiner
   
@@ -18,7 +16,7 @@ class Array
   
   def belongs_to(associate_objects, *args)
     
-    self.directives, self.options = split_arguments(args)               
+    self.directives, self.options = split_arguments(args)
     
     self.zip(associate_objects).each do |pair|
       
@@ -231,41 +229,11 @@ class Array
   
   def delete_existing_associate_objects()
     associate_class.where([" #{associate_foreign_key} IN (?)", self.map(&:id) ]).delete_all
-  end   
-  
-  def factory()
-    ( options[:factory].nil? ? associate.singularize : options[:factory] ).to_sym
-  end
-  
-  def return_self?
-    ! (directives & return_next_symbols).any?
-  end
-  
-  def insertion_using_import?
-    ! directives.include? :girl
-  end
-  
-  def split_arguments(args)                
-    directives = args[-1].is_a?(Hash) ? args[0...-1] : args
-    options = args[-1].is_a?(Hash) ? args[-1] : {}
-    [directives, options]
-  end     
-  
-  def associate_foreign_key()
-    reflection.foreign_key
-  end
-  
-  def associate_class()
-    reflection.klass
-  end  
+  end          
   
   def reflection()
-    self.first.class.reflections[self.associate.to_sym]
-  end
-  
-  def return_next_symbols
-    [:here, :next]
-  end
+    self.first.class.reflections[associate.to_sym]
+  end  
   
 end
 

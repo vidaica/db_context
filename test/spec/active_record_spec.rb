@@ -46,54 +46,76 @@ describe ActiveRecord::Base do
   
   end
   
-  describe 'has_associates method' do
+     
+  describe 'has_n_associates method' do
     
     before :each do
       @father = FactoryGirl.create :father
+      @children_data = [{:name => 'children1'}, {:name => 'children2'}, {:name => 'children3'}]              
+    end
+    
+    let(:insertion_method){ nil }
+    
+    it 'uses activerecord_import for database insertion by default' do        
+      @father.should_receive(:create_associate_objects_by_import)
+      @father.has_children @children_data
+    end
+    
+    it 'uses factory_girl for database insertion with :girl directive' do        
+      @father.should_receive(:create_associate_objects_by_factory_girl)
+      @father.has_children @children_data, :girl
     end
     
     it 'creates right number of associate objects using passed data' do      
-      @father.has_children [{:name => 'children1'}, {:name => 'children2'}]
-      @father.children.count.should == 2
-      @father.children.where(['name in (?)', ['children1', 'children2'] ]).count.should == 2
-    end
+      @father.has_children @children_data, insertion_method      
+      @father.children.map(&:name).should == @children_data.map{|item| item[:name]}      
+    end                  
     
-    it 'remove existing associate objects' do
+    it 'deletes all existing associate objects of the caller' do      
       @father.children.create(FactoryGirl.attributes_for :child)
-      @father.has_children [{:name => 'child1'}, {:name => 'child2'}]
-      @father.children.count.should be_equal(2)
+      @father.has_children @children_data, insertion_method
+      @father.children.count.should be @children_data.count 
     end
     
-    it 'does not cache associate objects' do
-      @father.has_children [{:name => 'child1'}, {:name => 'child2'}]
+    it 'does not delete existing associate objects that do not belongs to the caller' do     
+      @another_father = FactoryGirl.create :another_father
+      @another_father.children << FactoryGirl.build(:child)
+      @father.has_children @children_data, insertion_method
+      @another_father.children.count.should be 1    
+    end            
+    
+    it 'does not cause associate objects getting cached' do     
+      @father.has_children @children_data
       FactoryGirl.create(:child, name: 'an_extra_child').update_attribute('father_id', @father.id)
-      @father.children.detect{|child| child.name == 'an_extra_child'}.should_not be_nil      
+      @father.children.detect{|child| child.name == 'an_extra_child'}.should_not be_nil         
     end
     
-    it 'returns array of children if factory is :here' do
-      returned = @father.has_children [{:name => 'child1'}, {:name => 'child2'}], :here
-      assert_array_of_children returned, 2
+    it 'works with an explicit factory' do
+      @father.has_children @children_data, insertion_method, :factory => :another_child
+      @father.children.map(&:name).uniq == ['Another Child']
     end
     
-    it 'returns array of children if return_what is :here' do
-      returned = @father.has_children [{:name => 'child1'}, {:name => 'child2'}], :child, :here
-      assert_array_of_children returned, 2
-    end      
-    
-    it 'returns self with defaut parameters' do     
-      returned = @father.has_children [{:name => 'child1'}, {:name => 'child2'}]
-      returned.should === @father      
+    it 'returns caller by default' do      
+      @father.has_children( @children_data, insertion_method ).should be @father      
     end
     
-    it 'activates validation by default' do
-      expect{ @father.has_children [{:name => ''}] }.to raise_exception(FailedImportError)
+    it 'returns array of associate objects if with :next directive' do      
+      assert_array_of_children @father.has_children( @children_data, insertion_method, :next), @children_data.count    
     end
+  
+    describe 'using activerecord_import for database insertion' do
+      
+      it 'activates validation by default' do
+        expect{ @father.has_children [{:name => ''}] }.to raise_exception(FailedImportError)
+      end
+      
+      it 'ignores validation with :skip_validation directive' do
+        expect{ @father.has_children [{:name => ''}], :skip_validation }.not_to raise_exception(FailedImportError)
+      end
+      
+    end       
     
-    it 'ignores validation if :validate option is set to false' do
-      expect{ @father.has_children [{:name => ''}], :child, :validate => false }.not_to raise_exception(FailedImportError)
-    end
-    
-  end
+  end 
   
   describe 'has_n_associates method' do
     
@@ -101,36 +123,20 @@ describe ActiveRecord::Base do
       @father = FactoryGirl.create :father
     end
     
-    it 'creates n associate objects' do
-      expect{ @father.has_3_children }.to change(@father.children, :count).by(3)
+    it 'delegates to Array.has_n_associates' do
+      Array.any_instance.should_receive(:has_3_children).with(:girl, :next, :factory => :child)
+      @father.has_3_children( :girl, :next, :factory => :child )
+    end          
+    
+    it 'returns array of children with :next directive' do
+      assert_array_of_children @father.has_3_children(:next), 3
     end
     
-    it 'remove existing associate objects' do      
-      @father.children.create(FactoryGirl.attributes_for :child)
-      @father.has_3_children      
-      @father.children.count.should be_equal(3)
-    end       
-    
-    it 'does not cache associate objects' do
-      @father.has_3_children
-      FactoryGirl.create(:child, name: 'an_extra_child').update_attribute('father_id', @father.id)
-      @father.children.detect{|child| child.name == 'an_extra_child'}.should_not be_nil      
-    end
-    
-    it 'returns array of children if factory is :here' do
-      assert_array_of_children @father.has_3_children(:here), 3     
-    end
-    
-    it 'returns array of children if return_what is :here' do
-      assert_array_of_children @father.has_3_children(:child, :here), 3
+    it 'returns caller with defaut parameters' do     
+      @father.has_3_children.should be @father      
     end      
     
-    it 'returns self with defaut parameters' do     
-      returned = @father.has_3_children
-      returned.should === @father      
-    end
-    
-  end
+  end  
   
   describe 'create_n_instances method' do
     
@@ -346,29 +352,23 @@ describe ActiveRecord::Base do
   
   describe 'random_update_n_associates method' do
     
-    it 'update n associate objects' do
-      father = Father.one
-      father.has_4_children           
-      father.random_update_2_children name:'updated_name'
-      father.children.where(:name => 'updated_name').count.should == 2      
+    before :each do
+      @father = FactoryGirl.create(:father)
     end
     
-    it 'update n associate objects randomly' do
-      
-      father = Father.one
-      
-      updated_indexes = []
-            
-      10.times do        
-        father.has_4_children
-        father.random_update_2_children(name:'updated_name')
-        father.children.order('id asc').each_with_index do |child, index|
-          updated_indexes << index if child.name == 'updated_name'
-        end
-      end      
-      
-      updated_indexes.flatten.uniq.sort.should == [0,1,2,3]
-      
+    it 'delegates to Array.random_update_n_associates' do      
+      Array.any_instance.should_receive(:random_update_3_children).with(name:'updated_name')
+      @father.random_update_3_children(name:'updated_name')
+    end 
+    
+    it 'updates n associate objects' do      
+      @father.has_4_children           
+      @father.random_update_2_children name:'updated_name'
+      @father.children.where(:name => 'updated_name').count.should be 2      
+    end
+    
+    it 'returns caller' do
+      @father.random_update_2_children(name:'updated_name').should be @father
     end
     
   end
