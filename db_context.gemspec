@@ -19,9 +19,9 @@ Gem::Specification.new do |spec|
   spec.test_files    = spec.files.grep(%r{^(test|spec|features)/})
   spec.require_paths = ["lib"]
 
-  spec.add_runtime_dependency "activerecord", "3.2.13"
-  spec.add_runtime_dependency "factory_girl", "3.2.0"
-  spec.add_runtime_dependency "activerecord-import", "0.3.1"
+  spec.add_runtime_dependency "activerecord", ">= 3.2.13"
+  spec.add_runtime_dependency "factory_girl", ">= 3.2.0"
+  spec.add_runtime_dependency "activerecord-import", ">= 0.3.1"
   
   spec.add_development_dependency "bundler", "~> 1.3"
   spec.add_development_dependency "rake"  

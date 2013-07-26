@@ -4,10 +4,12 @@ module DbContext
     
     attr_accessor :directives, :associate, :options
     
-    alias_method :method_missing_before_db_context, :method_missing
+    def self.included(klass)
+      
+      klass.instance_eval { alias_method :method_missing_before_db_context, :method_missing }
+      
+    end
     
-    private
-     
     def define_missing_method(method_name, definers, *args, &block)
           
       definers.each do |method_patern, defining_method|
@@ -25,6 +27,8 @@ module DbContext
       
     end
     
+    private
+            
     def import_associate_objects(associate_objects)
     
       result = associate_class.import associate_objects, :validate => ! directives.include?(:skip_validation)                             
