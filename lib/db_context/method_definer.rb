@@ -25,6 +25,16 @@ module DbContext
       
     end
     
+    def import_associate_objects(associate_objects)
+    
+      result = associate_class.import associate_objects, :validate => ! directives.include?(:skip_validation)                             
+  
+      if result.failed_instances.count > 0
+        raise FailedImportError, "Import failed for some reason, most likely because of active record validation"
+      end
+      
+    end
+    
     def insertion_using_import?
       ! directives.include? :girl
     end

@@ -5,9 +5,9 @@ class Array
   def method_missing(method_name, *args, &block)
               
     definers = {
-      /^each_has_(\d+)_([a-zA-Z]+)$/            => 'each_has_n_associates',
-      /^has_(\d+)_([a-zA-Z]+)$/                 => 'has_n_associates',
-      /^random_update_(\d+)_([a-zA-Z]+)$/       => 'random_update_n_associates'
+      /^each_has_(\d+)_([a-zA-Z_]+)$/            => 'each_has_n_associates',
+      /^has_(\d+)_([a-zA-Z_]+)$/                 => 'has_n_associates',
+      /^random_update_(\d+)_([a-zA-Z_]+)$/       => 'random_update_n_associates'
     }
     
     define_missing_method( method_name, definers, *args, &block )
@@ -21,7 +21,7 @@ class Array
     self.zip(associate_objects).each do |pair|
       
       record, associate_object = pair
-      record.belongs_to associate_object, options[:associate]
+      record.belongs_to associate_object, :associate => options[:associate]
       
     end
        
@@ -207,17 +207,7 @@ class Array
       
     end
     
-  end    
-  
-  def import_associate_objects(associate_objects)
-    
-    result = associate_class.import associate_objects, :validate => ! directives.include?(:skip_validation)                             
-
-    if result.failed_instances.count > 0
-      raise FailedImportError, "Import failed for some reason, most likely because of active record validation"
-    end
-    
-  end  
+  end      
   
   def newly_created_associate_objects(number_of_associate_objects = -1)
     associate_objects = associate_class

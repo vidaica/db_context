@@ -5,7 +5,7 @@ class Fixnum
   def method_missing(method_name, *args, &block)
     
     definers = {
-      /^[A-Z]/  => 'define_active_record_creating'      
+      /^[A-Z]/  => 'active_record_creating'      
     }
     
     define_missing_method( method_name, definers, *args, &block ) 
@@ -14,11 +14,15 @@ class Fixnum
   
   private
   
-  def define_active_record_creating(method_name, matches)    
+  def active_record_creating(method_name, matches) 
     self.class.class_eval do
-      define_method method_name do |create_method = :import, factory = nil, import_options = {}|
-        method_name.to_s.singularize.constantize.send("create_#{self}", create_method, factory, import_options)
-      end        
+      
+      define_method method_name do |*args|
+        
+        method_name.to_s.singularize.constantize.send("create_#{self}", *args)
+        
+      end
+      
     end
   end
   

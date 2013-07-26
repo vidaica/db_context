@@ -4,6 +4,7 @@ class CreateChildrenTable < ActiveRecord::Migration
       t.integer :father_id
       t.integer :foster_father_id
       t.string :name
+      t.string :nickname
     end
   end
 end

@@ -5,34 +5,38 @@ class ActiveRecord::Base
   def method_missing(method_name, *args, &block)                         
     
     definers = {
-      /^has_(\d+)_([a-zA-Z]+)$/             => 'has_n_associates',
-      /^random_update_(\d+)_([a-zA-Z]+)$/   => 'random_update_n_associates',
-      /^has_([a-zA-Z]+)$/                   => 'has_associates'
+      /^has_(\d+)_([a-zA-Z_]+)$/             => 'has_n_associates',
+      /^random_update_(\d+)_([a-zA-Z_]+)$/   => 'random_update_n_associates',
+      /^has_([a-zA-Z_]+)$/                   => 'has_associates'
     }
     
     define_missing_method( method_name, definers, *args, &block )            
         
   end
   
-  def belongs_to(associate_object, associate = nil)
+  def belongs_to(associate_object, *args)
     
-    associate = associate.nil? ? associate_object.class.name.downcase : associate        
+    self.directives, self.options = split_arguments(args)
+    
+    associate = options[:associate].nil? ? associate_object.class.name.downcase : options[:associate]
     self.send("#{associate}=", associate_object)
     self.save!
-    self
+    
+    return_self? ? self : associate_object
     
   end
   
-  def has(associate_objects, reverse_associate = nil)
+  def has(associate_objects, *args)
     
-    reverse_associate = reverse_associate.nil? ? self.class.name.downcase : reverse_associate
+    self.directives, self.options = split_arguments(args)
+          
+    associate = options[:associate].nil? ? associate_objects.first.class.name.downcase.pluralize : options[:associate]
     
-    associate_objects.each do |object|
-      object.send("#{reverse_associate}=", self)
-      object.save!
+    associate_objects.each do |object|      
+      self.send(associate) << object
     end
     
-    self
+    return_self? ? self : associate_objects
     
   end
   
@@ -65,6 +69,8 @@ class ActiveRecord::Base
             
         self.directives, self.options = split_arguments(args)
         
+        delete_existing_associate_objects
+        
         if insertion_using_import?
         
           create_associate_objects_by_import(data)
@@ -74,6 +80,8 @@ class ActiveRecord::Base
           create_associate_objects_by_factory_girl(data)
           
         end
+        
+        return_self? ? self : associate_class.where([" #{associate_foreign_key} = (?)", self.id ]).to_a
         
       end
       
@@ -109,27 +117,23 @@ class ActiveRecord::Base
       associate_object = FactoryGirl.build factory, data_item
       associate_object.send( "#{associate_foreign_key}=", self.id )
       associate_objects << associate_object            
-    end     
+    end                    
             
-    delete_existing_associate_objects
-            
-    import_associate_objects associate_objects
-    
-    return_self? ? self : associate_class.where([" #{associate_foreign_key} = (?)", self.id ]).to_a      
+    import_associate_objects associate_objects       
     
   end
   
   def create_associate_objects_by_factory_girl(data)
     
+    data.each do |data_item|      
+      send(associate) << FactoryGirl.build(factory, data_item)
+    end
+    
   end  
     
   def reflection()
     self.class.reflections[associate.to_sym]
-  end
-  
-  def import_associate_objects(associate_objects)
-    associate_class.import associate_objects
-  end  
+  end   
   
   def delete_existing_associate_objects()
     associate_class.where([" #{associate_foreign_key} = (?)", self.id ]).delete_all

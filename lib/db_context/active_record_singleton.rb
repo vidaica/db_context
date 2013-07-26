@@ -1,125 +1,138 @@
-class ActiveRecord::Base
+class << ActiveRecord::Base
      
   ORDINALS = {second: 2, third: 3, fourth: 4, fifth: 5, sixth: 6, seventh: 7, eighth: 8, ninth: 9, tenth: 10}   
+   
+  include DbContext::MethodDefiner  
   
-  class << self
-           
-    include DbContext::MethodDefiner  
+  def method_missing(method_name, *args, &block)      
+         
+    definers = {
+      /^create_(\d+)$/                        => 'create_n_instances',
+      /^(second|third|fourth|fifth)$/         => 'second_to_tenth_methods',
+      /^(sixth|seventh|eighth|ninth|tenth)$/  => 'second_to_tenth_methods'
+    }
     
-    def method_missing(method_name, *args, &block)      
-           
-      definers = {
-        /^create_(\d+)$/                        => 'define_create_n_instances',
-        /^(second|third|fourth|fifth)$/         => 'define_second_to_tenth_methods',
-        /^(sixth|seventh|eighth|ninth|tenth)$/  => 'define_second_to_tenth_methods'
-      }
+    define_missing_method( method_name, definers, *args, &block )          
+    
+  end
+  
+  def one(*args)
+    
+    args.unshift(:girl) if ! (args & [:import, :girl]).any?
+    
+    self.create_1(*args).first
+    
+  end
+  
+  def serial_update(attributes)
+    
+    number_of_updated_objects = attributes.collect{ |attr, values| values.count }.max
+    
+    objects = self.order('id asc').first(number_of_updated_objects)
+    
+    attributes.each_pair do |attribute, values|
+      values.each_with_index do |value, index|
+        objects[index].update_attribute attribute, value
+      end
+    end
+    
+  end
+  
+  def has(data, *args)
+    
+    self.directives, self.options = split_arguments(args)
+    
+    factory = options[:factory].nil? ? self.name.underscore.to_sym : options[:factory]       
+    
+    if insertion_using_import?
+    
+      create_instances_by_import(data, factory)
+    
+    else
       
-      define_missing_method( method_name, definers, *args, &block )          
+      create_instances_by_factory_girl(data, factory)
       
     end
     
-    def one(method = :factory, factory = nil, import_options = {})
-      self.create_1(method, factory, import_options).first
-    end
+  end
+  
+  private
+  
+  def singleton_class
+    class << self; self; end
+  end
+  
+  def second_to_tenth_methods(method_name, matches)
     
-    def serial_update(attributes)
+    singleton_class.class_eval do
       
-      number_of_updated_objects = attributes.collect{ |attr, values| values.count }.max
-      
-      objects = self.order('id asc').first(number_of_updated_objects)
-      
-      attributes.each_pair do |attribute, values|
-        values.each_with_index do |value, index|
-          objects[index].update_attribute attribute, value
-        end
+      define_method method_name do
+        
+        order_number = ORDINALS[method_name]
+        self.first(order_number).last
+        
       end
       
     end
     
-    def has(data, factory = nil, import_options = {})
-      factory = factory.nil? ? self.name.underscore.to_sym : factory 
-      create_instances_by_import(data, factory, import_options)
-    end
-    
-    private
-    
-    def singleton_class
-      class << self; self; end
-    end
-    
-    def define_second_to_tenth_methods(method_name, matches)
+  end       
+         
+  def create_n_instances(method_name, matches)
+           
+    singleton_class.class_eval do
       
-      singleton_class.class_eval do
+      define_method method_name do |*args|
         
-        define_method method_name do
+        number_of_instances = matches[1].to_i
+        
+        self.directives, self.options = split_arguments(args)         
+                 
+        factory = options[:factory].nil? ? self.name.underscore.to_sym : options[:factory]
+        
+        if insertion_using_import?
           
-          order_number = ORDINALS[method_name]
-          self.first(order_number).last
+          create_instances_by_import(number_of_instances, factory)
           
-        end
+        else
+          
+          create_instances_by_factory_girl(number_of_instances,factory)
+          
+        end              
         
       end
       
+    end
+    
+  end
+  
+  def create_instances_by_import(data, factory)
+    
+    instances = []
+    
+    data = ( data.class == Fixnum ? [{}]* data : data )
+        
+    data.each do |item|
+      instances << FactoryGirl.build( factory, item )
+    end  
+          
+    result = instances.first.class.import instances, :validate => ! directives.include?(:skip_validation)
+    
+    if result.failed_instances.count > 0
+      raise FailedImportError, "Import failed for some reason, most likely because of active record validation"
     end       
-           
-    def define_create_n_instances(method_name, matches)
-      
-      number_of_instances = matches[1].to_i
-      
-      singleton_class.class_eval do
-        
-        define_method method_name do |create_method = :import, factory = nil, import_options = {}|
-                   
-          factory = factory.nil? ? self.name.underscore.to_sym : factory         
-          
-          if create_method == :import
-            
-            create_instances_by_import(number_of_instances, factory, import_options)
-            
-          elsif create_method == :factory
-            
-            create_instances_by_factory(number_of_instances,factory)
-            
-          else
-            
-            raise InvalidCreateMethod, 'invalid create_method, valid methods are :import and :factory'
-            
-          end
-          
-        end
-        
-      end
-      
-    end
     
-    def create_instances_by_import(data, factory, options)
-      
-      instances = []
-      
-      data = ( data.class == Fixnum ? [{}]* data : data )
-          
-      data.each do |item|
-        instances << FactoryGirl.build( factory, item )
-      end  
-            
-      result = instances.first.class.import instances, options
-      
-      if result.failed_instances.count > 0
-        raise FailedImportError, "Import failed for some reason, most likely because of active record validation"
-      end
-      
-      instances.first.class.last(data.count)
-      
-    end
+    instances.first.class.last(data.count)
     
-    def create_instances_by_factory(number_of_instances, factory)
-      
-      number_of_instances.times.map do
-        FactoryGirl.create factory
-      end
-      
-    end
+  end
   
-  end  
+  def create_instances_by_factory_girl(data, factory)
+    
+    data = ( data.class == Fixnum ? [{}]* data : data )
+    
+    data.map do |item|
+      FactoryGirl.create( factory, item )
+    end    
+    
+  end 
   
 end
