@@ -61,18 +61,14 @@ module DbContext
     
     def associate_class()
       reflection.klass
-    end  
-      
-    def return_next_symbols
-      [:here, :next]
-    end
+    end          
     
     def factory()
       ( options[:factory].nil? ? associate.singularize : options[:factory] ).to_sym
     end
     
     def return_self?
-      ! (directives & return_next_symbols).any?
+      ! (directives & [:here, :next]).any?
     end
          
   end
