@@ -29,6 +29,12 @@ describe Array do
     it 'returns associate objects with :next directive' do
       @children.belongs_to(@fathers, :next).should be @fathers
     end
+    
+    it 'allocates items equally to associate objects' do
+      @children = @children + 3.times.map{ FactoryGirl.create :child }
+      @children.belongs_to @fathers
+      @fathers.each {|father| father.children.count.should be @children.count/@fathers.count  }
+    end
                      
   end
   

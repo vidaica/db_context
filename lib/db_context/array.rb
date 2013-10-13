@@ -18,10 +18,15 @@ class Array
     
     self.directives, self.options = split_arguments(args)
     
-    self.zip(associate_objects).each do |pair|
+    self.each_slice(self.count/associate_objects.count).zip(associate_objects).each do |pair|
       
-      record, associate_object = pair
-      record.belongs_to associate_object, :associate => options[:associate]
+      records, associate_object = pair
+      
+      records.each do |record|
+        
+        record.belongs_to associate_object, :associate => options[:associate]
+        
+      end
       
     end
        
