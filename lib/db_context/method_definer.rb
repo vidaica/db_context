@@ -28,14 +28,32 @@ module DbContext
     end
     
     private
-            
-    def import_associate_objects(associate_objects)
     
-      result = associate_class.import associate_objects, :validate => ! directives.include?(:skip_validation)                             
+    def import_activerecord_objects(klass, objects)
+      
+      if ! directives.include?(:skip_validation)
+        
+        objects.each do |obj|
+          if ! obj.valid?
+            raise FailedImportError, "Invalid record, error: #{obj.errors.messages.map { |key, msgs| msgs }.flatten[0]}"
+          end
+        end
+        
+      end
+            
+      result = klass.import objects, :validate => false
   
       if result.failed_instances.count > 0
         raise FailedImportError, "Import failed for some reason, most likely because of active record validation"
       end
+      
+      result
+      
+    end
+            
+    def import_associate_objects(associate_objects)
+      
+      import_activerecord_objects associate_class, associate_objects            
       
     end
     

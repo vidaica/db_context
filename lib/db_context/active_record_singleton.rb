@@ -113,13 +113,9 @@ class << ActiveRecord::Base
         
     data.each do |item|
       instances << FactoryGirl.build( factory, item )
-    end  
-          
-    result = instances.first.class.import instances, :validate => ! directives.include?(:skip_validation)
+    end
     
-    if result.failed_instances.count > 0
-      raise FailedImportError, "Import failed for some reason, most likely because of active record validation"
-    end       
+    import_activerecord_objects(instances.first.class, instances)          
     
     instances.first.class.last(data.count)
     
