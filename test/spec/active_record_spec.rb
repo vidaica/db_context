@@ -89,8 +89,8 @@ describe ActiveRecord::Base do
   describe 'has_n_associates method' do
            
     it 'delegates to Array.has_n_associates' do
-      Array.any_instance.should_receive(:has_3_children).with(:girl, :next, :factory => :child)
-      @father.has_3_children( :girl, :next, :factory => :child )
+      Array.any_instance.should_receive(:has_3_children).with(:girl, :next, :factory => :child, :data => [])
+      @father.has_3_children( :girl, :next, :factory => :child, :data => [] )
     end          
     
     it 'returns array of children with :next directive' do      

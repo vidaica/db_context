@@ -119,6 +119,16 @@ describe Array do
         @fathers.sum{|father| father.foster_children.count }.should be 5
       end
       
+      it 'works with provided data do' do
+        
+        @fathers.has_3_children( insertion_method, data: [ {name: 'Ti' }, {name: 'Teo'} ] )
+        child1 = @fathers[0].children.first
+        child2 = @fathers[1].children.first
+        child1.name.should == 'Ti'
+        child2.name.should == 'Teo'
+        
+      end
+      
       it 'returns caller by default' do      
         @fathers.has_3_children(insertion_method).should be @fathers      
       end

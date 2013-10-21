@@ -90,11 +90,11 @@ class Array
         
         if insertion_using_import?                 
           
-          create_associate_objects_by_import_using_allocating_schema allocating_scheme
+          create_associate_objects_by_import_using_allocating_schema allocating_scheme, self.options[:data]
           
         else                   
           
-          create_associate_objects_by_factory_girl_using_allocating_schema allocating_scheme
+          create_associate_objects_by_factory_girl_using_allocating_schema allocating_scheme, self.options[:data]
           
         end  
               
@@ -148,18 +148,27 @@ class Array
     
   end  
   
-  def create_associate_objects_by_import_using_allocating_schema(allocating_scheme)
+  def create_associate_objects_by_import_using_allocating_schema(allocating_scheme, data )
+    
+    data = data || []
     
     associate_objects = []
+    
+    data_index = 0
                             
     self.zip(allocating_scheme).each do |pair|
       
       object, number_of_allocated_associate_objects = pair
       
       number_of_allocated_associate_objects.times do
-        associate_object = FactoryGirl.build factory
+        
+        attributes = FactoryGirl.attributes_for(factory).merge( data[data_index] || {} )
+        associate_object = FactoryGirl.build( factory, attributes )
         associate_object.send( "#{associate_foreign_key}=", object.id )
         associate_objects << associate_object
+        
+        data_index = data_index + 1
+        
       end
       
     end                                         
@@ -168,14 +177,23 @@ class Array
     
   end
   
-  def create_associate_objects_by_factory_girl_using_allocating_schema(allocating_scheme)
+  def create_associate_objects_by_factory_girl_using_allocating_schema(allocating_scheme, data)
+    
+    data = data || []
+    
+    data_index = 0
     
     self.zip(allocating_scheme).each do |pair|
             
       object, number_of_allocated_associate_objects = pair
       
-      number_of_allocated_associate_objects.times do              
-        object.send(associate) << FactoryGirl.create(factory)
+      number_of_allocated_associate_objects.times do
+        
+        attributes = FactoryGirl.attributes_for(factory).merge( data[data_index] || {} )
+        object.send(associate) << FactoryGirl.create(factory, attributes)
+        
+        data_index = data_index + 1
+        
       end
       
     end
