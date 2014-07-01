@@ -100,7 +100,7 @@ class ActiveRecord::Base
         
         result = [self].send(method_name,*args)
         
-        return_self? ? result.first : result                 
+        return_self? ? result.first : result
         
       end
       
@@ -139,10 +139,4 @@ class ActiveRecord::Base
     associate_class.where([" #{associate_foreign_key} = (?)", self.id ]).delete_all
   end  
   
-end
-
-class FailedImportError < Exception
-end
-
-class InvalidCreateMethod < Exception
 end

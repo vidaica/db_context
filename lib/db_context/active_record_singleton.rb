@@ -109,7 +109,7 @@ class << ActiveRecord::Base
     
     instances = []
     
-    data = ( data.class == Fixnum ? [{}]* data : data )
+    data = ( data.is_a?(Fixnum) ? [{}]* data : data )
         
     data.each do |item|
       instances << FactoryGirl.build( factory, item )
@@ -123,7 +123,7 @@ class << ActiveRecord::Base
   
   def create_instances_by_factory_girl(data, factory)
     
-    data = ( data.class == Fixnum ? [{}]* data : data )
+    data = ( data.is_a?(Fixnum) ? [{}]* data : data )
     
     data.map do |item|
       FactoryGirl.create( factory, item )

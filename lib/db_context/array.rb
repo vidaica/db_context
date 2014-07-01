@@ -16,6 +16,8 @@ class Array
   
   def belongs_to(associate_objects, *args)
     
+    associate_objects = [associate_objects] if ! associate_objects.is_a?(Array)
+    
     self.directives, self.options = split_arguments(args)
     
     self.each_slice(self.count/associate_objects.count).zip(associate_objects).each do |pair|
@@ -48,7 +50,7 @@ class Array
                               
         id_hash = {}               
         
-        associate_ids = associate_class    
+        associate_class    
         .where( [ "#{associate_foreign_key} IN (?)", self.map(&:id) ] )
         .each do |associate_object|
           
@@ -248,7 +250,4 @@ class Array
     self.first.class.reflections[associate.to_sym]
   end  
   
-end
-
-class FailedImportError < Exception
 end

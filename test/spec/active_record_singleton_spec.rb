@@ -36,11 +36,11 @@ describe ActiveRecord::Base do
       end
       
       it 'activates validation by default' do
-        expect{ Father.has [{:name => ''}] }.to raise_exception(FailedImportError)
+        expect{ Father.has [{:name => ''}] }.to raise_exception(DbContext::FailedImportError)
       end
       
       it 'ignores validation with :skip_validation directive' do
-        expect{ Father.has [{:name => ''}], :skip_validation }.not_to raise_exception(FailedImportError)
+        expect{ Father.has [{:name => ''}], :skip_validation }.not_to raise_exception(DbContext::FailedImportError)
       end
                  
       it_should_behave_like 'a good insertion method for ActiveRecord::has' 
@@ -90,11 +90,11 @@ describe ActiveRecord::Base do
       end
       
       it 'activates validation by default' do
-        expect{ Father.create_3 :factory => :invalid_father }.to raise_exception(FailedImportError)
+        expect{ Father.create_3 :factory => :invalid_father }.to raise_exception(DbContext::FailedImportError)
       end
       
       it 'ignores validation with :skip_validation directive' do
-        expect{ Father.create_3 :skip_validation, :factory => :invalid_father }.not_to raise_exception(FailedImportError)
+        expect{ Father.create_3 :skip_validation, :factory => :invalid_father }.not_to raise_exception(DbContext::FailedImportError)
       end
                  
       it_should_behave_like 'a good insertion method for ActiveRecord::create_n_instances' 
@@ -143,23 +143,23 @@ describe ActiveRecord::Base do
       
       Father.create_10
       
-      Father.second.should   == Father.first(2).last
+      Father.second.should   eq Father.first(2).last
       
-      Father.third.should    == Father.first(3).last
+      Father.third.should    eq Father.first(3).last
       
-      Father.fourth.should   == Father.first(4).last
+      Father.fourth.should   eq Father.first(4).last
       
-      Father.fifth.should    == Father.first(5).last
+      Father.fifth.should    eq Father.first(5).last
       
-      Father.sixth.should    == Father.first(6).last
+      Father.sixth.should    eq Father.first(6).last
       
-      Father.seventh.should  == Father.first(7).last
+      Father.seventh.should  eq Father.first(7).last
       
-      Father.eighth.should   == Father.first(8).last
+      Father.eighth.should   eq Father.first(8).last
       
-      Father.ninth.should    == Father.first(9).last
+      Father.ninth.should    eq Father.first(9).last
       
-      Father.tenth.should    == Father.first(10).last
+      Father.tenth.should    eq Father.first(10).last
       
     end
     
@@ -176,7 +176,7 @@ describe ActiveRecord::Base do
       Father.first.number.should   be 0
       Father.second.number.should  be 1
       Father.third.number.should   be 2
-      Father.fourth.number.should  be 3      
+      Father.fourth.number.should  be 3
       
       Father.first.name.should     eq 'zero'
       Father.second.name.should    eq 'one'
@@ -186,7 +186,7 @@ describe ActiveRecord::Base do
     
   end
   
-  describe 'when calls a non-defined method' do
+  describe 'a non-defined method is called' do
     it 'raises NoMethodError' do
       expect {Father.non_existing_method}.to raise_exception(NoMethodError)
     end

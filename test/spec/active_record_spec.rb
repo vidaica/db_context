@@ -62,11 +62,11 @@ describe ActiveRecord::Base do
       end
       
       it 'activates validation by default' do
-        expect{ @father.has_children [{:name => ''}] }.to raise_exception(FailedImportError)
+        expect{ @father.has_children [{:name => ''}] }.to raise_exception(DbContext::FailedImportError)
       end
       
       it 'ignores validation with :skip_validation directive' do
-        expect{ @father.has_children [{:name => ''}], :skip_validation }.not_to raise_exception(FailedImportError)
+        expect{ @father.has_children [{:name => ''}], :skip_validation }.not_to raise_exception(DbContext::FailedImportError)
       end
                  
       it_should_behave_like 'a good insertion method for ActiveRecord#has_associates' 
@@ -105,7 +105,7 @@ describe ActiveRecord::Base do
     
   end  
      
-  describe 'belongs_to_associate method' do
+  describe 'belongs_to method' do
     
     before :each do      
       @child = FactoryGirl.create :child      
@@ -113,12 +113,12 @@ describe ActiveRecord::Base do
     
     it 'assigns the associate object to the caller' do
       @child.belongs_to @father
-      @child.father.id.should == @father.id
+      @child.reload.father.id.should == @father.id
     end
     
     it 'works with an explicit associate' do
       @child.belongs_to @father, :associate => 'foster_father'
-      @child.foster_father.id.should == @father.id
+      @child.reload.foster_father.id.should == @father.id
     end
     
     it 'returns the caller by default' do

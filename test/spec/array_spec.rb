@@ -8,7 +8,7 @@ describe Array do
   
   describe 'belongs_to' do
     
-    before :each do      
+    before :each do
       @children = 3.times.map{ FactoryGirl.create :child }    
     end
     
@@ -35,6 +35,12 @@ describe Array do
       @children.belongs_to @fathers
       @fathers.each {|father| father.children.count.should be @children.count/@fathers.count  }
     end
+    
+    it 'accepts a single associate object' do
+      one_father = @fathers.first
+      @children.belongs_to one_father
+      one_father.children.map(&:id).sort.should eq @children.map(&:id).sort
+    end
                      
   end
   
@@ -54,7 +60,7 @@ describe Array do
       
       updated_indexes = []
             
-      20.times do        
+      100.times do        
         @fathers.each_has_4_children
         @fathers.random_update_2_children(name:'updated_name')
         @fathers.first.children.order('id asc').each_with_index do |child, index|
@@ -98,7 +104,7 @@ describe Array do
       
       it 'assigns extra associate objects randomly to items' do     
         child_counts = []
-        20.times do
+        100.times do
           @fathers.has_8_children insertion_method
           @fathers.each do |father|          
             child_counts << father.children.count
@@ -124,8 +130,8 @@ describe Array do
         @fathers.has_3_children( insertion_method, data: [ {name: 'Ti' }, {name: 'Teo'} ] )
         child1 = @fathers[0].children.first
         child2 = @fathers[1].children.first
-        child1.name.should == 'Ti'
-        child2.name.should == 'Teo'
+        child1.name.should eq 'Ti'
+        child2.name.should eq 'Teo'
         
       end
       
@@ -147,11 +153,11 @@ describe Array do
       end           
       
       it 'activates validation by default' do
-        expect{ @fathers.has_3_children :factory => :invalid_child }.to raise_exception(FailedImportError)
+        expect{ @fathers.has_3_children :factory => :invalid_child }.to raise_exception(DbContext::FailedImportError)
       end
       
       it 'ignores validation with :skip_validation directive' do
-        expect{ @fathers.has_3_children :skip_validation, :factory => :invalid_child }.not_to raise_exception(FailedImportError)
+        expect{ @fathers.has_3_children :skip_validation, :factory => :invalid_child }.not_to raise_exception(DbContext::FailedImportError)
       end
       
       it_should_behave_like 'a good insertion method for Array#has_n_associates'
@@ -229,18 +235,18 @@ describe Array do
       end
            
       it 'activates validation by default' do
-        expect{ @fathers.each_has_3_children :factory => :invalid_child }.to raise_exception(FailedImportError)
+        expect{ @fathers.each_has_3_children :factory => :invalid_child }.to raise_exception(DbContext::FailedImportError)
       end
       
       it 'ignores validation with :skip_validation directive' do
-        expect{ @fathers.each_has_3_children :skip_validation, :factory => :invalid_child }.not_to raise_exception(FailedImportError)
+        expect{ @fathers.each_has_3_children :skip_validation, :factory => :invalid_child }.not_to raise_exception(DbContext::FailedImportError)
       end
       
       it_should_behave_like 'a good insertion method for Array#each_has_n_associates'
                  
     end
     
-    describe 'using activerecord_import for database insertion' do
+    describe 'using factory_girl for database insertion' do
       
       it 'uses factory_girl for database insertion with :girl directive' do      
         @fathers.should_receive(:create_associate_objects_for_each_item_by_factory_girl)

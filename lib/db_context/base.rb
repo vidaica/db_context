@@ -59,13 +59,7 @@ module DbContext
     
     def insertion_using_import?
       ! directives.include? :girl
-    end
-    
-    def split_arguments(args)                
-      directives = args[-1].is_a?(Hash) ? args[0...-1] : args
-      options = args[-1].is_a?(Hash) ? args[-1] : {}
-      [directives, options]
-    end 
+    end      
     
     def split_arguments(args)                
       directives = args[-1].is_a?(Hash) ? args[0...-1] : args
@@ -89,6 +83,12 @@ module DbContext
       ! (directives & [:here, :next]).any?
     end
          
+  end
+    
+  class FailedImportError < Exception
+  end
+  
+  class InvalidCreateMethod < Exception
   end
 
 end
