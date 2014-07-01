@@ -15,7 +15,7 @@ class Fixnum
   private
   
   def active_record_creating(method_name, matches) 
-    self.class.class_eval do
+    klass_eval do
       
       define_method method_name do |*args|
         
@@ -24,6 +24,6 @@ class Fixnum
       end
       
     end
-  end
+  end  
   
 end

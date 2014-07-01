@@ -44,7 +44,7 @@ class ActiveRecord::Base
   
   def random_update_n_associates(method_name, matches)
     
-    self.class.class_eval do
+    klass_eval do
       
       define_method method_name do |*args|
           
@@ -61,7 +61,7 @@ class ActiveRecord::Base
   
   def has_associates(method_name, matches)      
     
-    self.class.class_eval do
+    klass_eval do
       
       define_method method_name do |data, *args|
         
@@ -92,7 +92,7 @@ class ActiveRecord::Base
   
   def has_n_associates(method_name, matches)     
     
-    self.class.class_eval do
+    klass_eval do
       
       define_method method_name do |*args|
         

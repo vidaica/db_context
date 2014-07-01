@@ -40,7 +40,7 @@ class Array
   
   def random_update_n_associates(method_name, matches)            
     
-    self.class.class_eval do
+    klass_eval do
     
       define_method method_name do |updated_attributes|
         
@@ -78,7 +78,7 @@ class Array
   
   def has_n_associates(method_name, matches)
                   
-    self.class.class_eval do
+    klass_eval do
       
       define_method method_name do |*args|
         
@@ -110,7 +110,7 @@ class Array
        
   def each_has_n_associates(method_name, matches)
                   
-    self.class.class_eval do
+    klass_eval do
             
       define_method method_name do | *args |
                      

@@ -82,6 +82,10 @@ module DbContext
     def return_self?
       ! (directives & [:here, :next]).any?
     end
+    
+    def klass_eval(&block)
+      self.class.class_eval(&block)
+    end
          
   end
     
