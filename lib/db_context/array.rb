@@ -34,7 +34,45 @@ class Array
        
     return_self? ? self : associate_objects
     
-  end  
+  end
+  
+  def has(associate_objects, *args)
+    
+    self.directives, self.options = split_arguments(args)
+          
+    associate = options[:associate].nil? ? associate_objects.first.class.name.downcase.pluralize : options[:associate]
+    
+    allocating_scheme = generate_allocating_scheme(associate_objects.count)
+    
+    self.zip(allocating_scheme).each do |pair|
+      
+      object, number_of_allocated_associate_objects = pair
+      
+      number_of_allocated_associate_objects.times do
+                
+        associate_object = FactoryGirl.build(*prepend_values_to_factory(data[data_index]))
+        associate_object.send( "#{associate_foreign_key}=", object.id )
+        associate_objects << associate_object
+        
+        data_index = data_index + 1
+        
+      end
+      
+    end 
+        
+    #associate_objects.each_slice(associate_objects.count/self.count).zip(self).each do |associate_slice, item|
+    #       
+    #  associate_slice.each do |associate_object|
+    #    
+    #    item.send(associate) << associate_object
+    #    
+    #  end
+    #  
+    #end
+    
+    return_self? ? self : associate_objects
+    
+  end
   
   private   
   

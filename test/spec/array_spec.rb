@@ -283,6 +283,51 @@ describe Array do
     end  
                      
   end
+  
+  describe 'has method' do
+    
+    before :each do
+      @children = 6.times.map{FactoryGirl.create(:child)}
+      @fathers =  3.times.map{FactoryGirl.create(:father)}
+    end
+    
+    it 'assigns the associate objects to items' do
+      @fathers.has @children
+      @fathers.map{|father| father.children.map(&:id)}.flatten.sort.should == @children.map(&:id).sort
+    end
+    
+    it 'allocates items equally to associate objects' do
+      @fathers.has @children      
+      @fathers.each {|father| father.children.count.should be @children.count/@fathers.count  }
+    end
+    
+    it 'assigns extra associate objects randomly to items' do
+      @children << FactoryGirl.create(:child)       
+      updated_indexes = []            
+      100.times do        
+        @fathers.has @children   
+        @fathers.each_with_index do |father, index|
+          updated_indexes << index if father.children.count == 3
+        end
+        @fathers.each{|father| father.children.destroy_all }
+      end              
+      updated_indexes.flatten.uniq.sort.should == [0,1,2]        
+    end
+    
+    it 'works with an explicit associate' do
+      @fathers.has @children, :associate => 'foster_children'
+      @fathers.map{|father| father.foster_children.map(&:id)}.flatten.sort.should == @children.map(&:id).sort
+    end
+    
+    it 'returns the caller by default' do
+      @fathers.has(@children).should be @fathers
+    end
+    
+    it 'returns the the associate objects with :next directive' do
+      @fathers.has(@children, :next).should be @children
+    end
+    
+  end
     
   
   def assert_array_of_children(arr, item_count)
