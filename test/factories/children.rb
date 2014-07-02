@@ -4,6 +4,11 @@ FactoryGirl.define do
     
     name "Child"
     nickname "Nick"
+    gender "None"
+    
+    trait :male do
+      gender 'male'
+    end
     
     factory :another_child do
       name "Another Child"

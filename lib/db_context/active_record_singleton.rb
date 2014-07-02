@@ -41,23 +41,21 @@ class << ActiveRecord::Base
   def has(data, *args)
     
     self.directives, self.options = split_arguments(args)
-    
-    factory = options[:factory].nil? ? self.name.underscore.to_sym : options[:factory]       
-    
+       
     if insertion_using_import?
     
-      create_instances_by_import(data, factory)
+      create_instances_by_import(data)
     
     else
       
-      create_instances_by_factory_girl(data, factory)
+      create_instances_by_factory_girl(data)
       
     end
     
   end
   
   private
-  
+    
   def singleton_class
     class << self; self; end
   end
@@ -85,17 +83,15 @@ class << ActiveRecord::Base
         
         number_of_instances = matches[1].to_i
         
-        self.directives, self.options = split_arguments(args)         
-                 
-        factory = options[:factory].nil? ? self.name.underscore.to_sym : options[:factory]
+        self.directives, self.options = split_arguments(args)                        
         
         if insertion_using_import?
           
-          create_instances_by_import(number_of_instances, factory)
+          create_instances_by_import(number_of_instances)
           
         else
           
-          create_instances_by_factory_girl(number_of_instances,factory)
+          create_instances_by_factory_girl(number_of_instances)
           
         end              
         
@@ -105,14 +101,14 @@ class << ActiveRecord::Base
     
   end
   
-  def create_instances_by_import(data, factory)
+  def create_instances_by_import(data)
     
     instances = []
     
     data = ( data.is_a?(Fixnum) ? [{}]* data : data )
         
     data.each do |item|
-      instances << FactoryGirl.build( factory, item )
+      instances << FactoryGirl.build(*prepend_values_to_factory(item))
     end
     
     import_activerecord_objects(instances.first.class, instances)          
@@ -121,12 +117,12 @@ class << ActiveRecord::Base
     
   end
   
-  def create_instances_by_factory_girl(data, factory)
+  def create_instances_by_factory_girl(data)
     
     data = ( data.is_a?(Fixnum) ? [{}]* data : data )
     
     data.map do |item|
-      FactoryGirl.create( factory, item )
+      FactoryGirl.create(*prepend_values_to_factory(item))
     end    
     
   end 

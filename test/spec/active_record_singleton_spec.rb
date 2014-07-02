@@ -18,7 +18,23 @@ describe ActiveRecord::Base do
       it 'works with an explicit factory' do
         Father.has @father_data, insertion_method, :factory => :another_father
         Father.all.map(&:nickname).uniq.should eq ['Another Nick']
-      end         
+      end
+      
+      it 'supports factory_girl traits' do
+        Father.has @father_data, insertion_method, :factory => [:father, :white]
+        Father.all.map(&:complexion).uniq.should eq ['white']
+      end
+      
+      it 'supports attribute values in factory' do
+        Father.has @father_data, insertion_method, :factory => [:father, :white, :complexion => 'black']
+        Father.all.map(&:complexion).uniq.should eq ['black']
+      end
+      
+      it 'makes values in provided data overide values in factory' do
+        @father_data.each{|item| item[:complexion] = 'yellow'}
+        Father.has @father_data, insertion_method, :factory => [:father, :white, :complexion => 'black']
+        Father.all.map(&:complexion).uniq.should eq ['yellow']
+      end
       
       it 'returns the newly created instances' do              
         returned = Father.has @father_data, insertion_method      
@@ -74,6 +90,16 @@ describe ActiveRecord::Base do
         returned.map(&:name).uniq.should == ['Another Father']
       end
       
+      it 'supports factory_girl traits' do
+        Father.create_3 insertion_method, :factory => [:father, :white]
+        Father.all.map(&:complexion).uniq.should eq ['white']
+      end
+      
+      it 'supports attribute values in factory' do
+        Father.create_3 insertion_method, :factory => [:father, :white, :complexion => 'black']
+        Father.all.map(&:complexion).uniq.should eq ['black']
+      end          
+      
       it 'returns array of newly created instances' do
         returned = Father.create_3 insertion_method
         returned.count.should be 3
@@ -117,8 +143,8 @@ describe ActiveRecord::Base do
   describe 'one method' do
     
     it 'delegates to ActiveRecord::create_n_instances' do
-      Father.should_receive(:create_1).with(:import, :skip_validation, :factory => :another_father).and_return([])
-      Father.one(:import, :skip_validation, :factory => :another_father)
+      Father.should_receive(:create_1).with(:import, :skip_validation, :factory => [:another_father, :white, :complexion => 'black']).and_return([])
+      Father.one(:import, :skip_validation, :factory => [:another_father, :white, :complexion => 'black'])
     end
     
     it 'returns the newly created instance' do

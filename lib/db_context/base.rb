@@ -75,8 +75,35 @@ module DbContext
       reflection.klass
     end          
     
-    def factory()
+    def factory_old()
       ( options[:factory].nil? ? associate.singularize : options[:factory] ).to_sym
+    end
+    
+    def factory()
+      if options[:factory].nil?
+        if !self.associate.nil?
+          [self.associate.singularize.to_sym]
+        else
+          [self.name.underscore.to_sym]
+        end
+      elsif options[:factory].is_a?(Array)
+        options[:factory]
+      elsif options[:factory].is_a?(String) || options[:factory].is_a?(Symbol)
+        [options[:factory].to_sym]
+      else        
+        raise InvalidFactoryType, 'factory must be an Array, a String or a Symbol'
+      end
+    end
+    
+    def prepend_values_to_factory(values = {})
+      values = {} if values.nil?
+      fac = factory
+      if fac[-1].is_a?(Hash)
+        fac[-1] =  fac[-1].merge(values)
+      else
+        fac << values
+      end
+      fac
     end
     
     def return_self?
@@ -93,6 +120,9 @@ module DbContext
   end
   
   class InvalidCreateMethod < Exception
+  end
+  
+  class InvalidFactoryType < Exception
   end
 
 end

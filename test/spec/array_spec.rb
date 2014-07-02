@@ -120,11 +120,6 @@ describe Array do
         @father.children.detect{|child| child.name == 'outlaw child' }.should_not be_nil      
       end
       
-      it 'works with an explicit factory' do      
-        @fathers.has_5_foster_children insertion_method, :factory => :child
-        @fathers.sum{|father| father.foster_children.count }.should be 5
-      end
-      
       it 'works with provided data do' do
         
         @fathers.has_3_children( insertion_method, data: [ {name: 'Ti' }, {name: 'Teo'} ] )
@@ -133,6 +128,26 @@ describe Array do
         child1.name.should eq 'Ti'
         child2.name.should eq 'Teo'
         
+      end
+      
+      it 'works with an explicit factory' do      
+        @fathers.has_5_foster_children insertion_method, :factory => :child
+        @fathers.sum{|father| father.foster_children.count }.should be 5
+      end
+      
+      it 'supports factory_girl traits' do
+        @fathers.has_5_foster_children insertion_method, :factory => [:child, :male]
+        @fathers.map { |father| father.foster_children.map(&:gender) }.flatten.uniq.should eq ['male'] 
+      end
+      
+      it 'supports attribute values in factory' do
+        @fathers.has_5_foster_children insertion_method, :factory => [:child, :male, :gender => 'female']
+        @fathers.map { |father| father.foster_children.map(&:gender) }.flatten.uniq.should eq ['female']
+      end
+      
+      it 'makes values in options[:data] overide values in factory' do        
+        @fathers.has_5_foster_children insertion_method, :factory => [:child, :male, :gender => 'female'], :data => [{:gender => 'neutral'}]*5
+        @fathers.map { |father| father.foster_children.map(&:gender) }.flatten.uniq.should eq ['neutral']
       end
       
       it 'returns caller by default' do      
@@ -196,6 +211,16 @@ describe Array do
         end
       end
       
+      it 'supports factory_girl traits' do
+        @fathers.each_has_3_foster_children insertion_method, :factory => [:child, :male]
+        @fathers.map { |father| father.foster_children.map(&:gender) }.flatten.uniq.should eq ['male'] 
+      end
+      
+      it 'supports attribute values in factory' do
+        @fathers.each_has_3_foster_children insertion_method, :factory => [:child, :male, :gender => 'female']
+        @fathers.map { |father| father.foster_children.map(&:gender) }.flatten.uniq.should eq ['female']
+      end
+            
       it 'deletes all existing associate objects' do     
         @fathers.each_has_5_children.each_has_3_children(insertion_method)
         @fathers.each do |father|        

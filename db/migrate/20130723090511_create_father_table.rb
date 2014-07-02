@@ -3,6 +3,7 @@ class CreateFatherTable < ActiveRecord::Migration
     create_table :fathers do |t|
       t.string :name
       t.string :nickname
+      t.string :complexion
       t.integer :number
     end
   end 

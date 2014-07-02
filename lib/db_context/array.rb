@@ -163,9 +163,8 @@ class Array
       object, number_of_allocated_associate_objects = pair
       
       number_of_allocated_associate_objects.times do
-        
-        attributes = FactoryGirl.attributes_for(factory).merge( data[data_index] || {} )
-        associate_object = FactoryGirl.build( factory, attributes )
+                
+        associate_object = FactoryGirl.build(*prepend_values_to_factory(data[data_index]))
         associate_object.send( "#{associate_foreign_key}=", object.id )
         associate_objects << associate_object
         
@@ -190,9 +189,8 @@ class Array
       object, number_of_allocated_associate_objects = pair
       
       number_of_allocated_associate_objects.times do
-        
-        attributes = FactoryGirl.attributes_for(factory).merge( data[data_index] || {} )
-        object.send(associate) << FactoryGirl.create(factory, attributes)
+                
+        object.send(associate) << FactoryGirl.create(*prepend_values_to_factory(data[data_index]))
         
         data_index = data_index + 1
         
@@ -209,7 +207,7 @@ class Array
     self.each do |object|
             
       number_of_associate_objects.times do
-        associate_object = FactoryGirl.build factory
+        associate_object = FactoryGirl.build(*factory)
         associate_object.send( "#{associate_foreign_key}=", object.id )
         associate_objects << associate_object           
       end                  
@@ -226,7 +224,7 @@ class Array
             
       number_of_associate_objects.times do
         
-        FactoryGirl.create factory, associate_foreign_key.to_sym => object.id
+        FactoryGirl.create(*prepend_values_to_factory(associate_foreign_key.to_sym => object.id))
         
       end                  
       

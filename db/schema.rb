@@ -18,11 +18,13 @@ ActiveRecord::Schema.define(:version => 20130723091524) do
     t.integer "foster_father_id"
     t.string  "name"
     t.string  "nickname"
+    t.string  "gender"
   end
 
   create_table "fathers", :force => true do |t|
     t.string  "name"
     t.string  "nickname"
+    t.string  "complexion"
     t.integer "number"
   end
 

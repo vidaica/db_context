@@ -111,10 +111,10 @@ class ActiveRecord::Base
   
   def create_associate_objects_by_import(data)                        
     
-    associate_objects = []        
-    
-    data.each do |data_item|
-      associate_object = FactoryGirl.build factory, data_item
+    associate_objects = []
+        
+    data.each do |data_item|                
+      associate_object = FactoryGirl.build(*prepend_values_to_factory(data_item))
       associate_object.send( "#{associate_foreign_key}=", self.id )
       associate_objects << associate_object            
     end                    
@@ -124,9 +124,9 @@ class ActiveRecord::Base
   end
   
   def create_associate_objects_by_factory_girl(data)
-    
-    data.each do |data_item|      
-      send(associate) << FactoryGirl.build(factory, data_item)
+        
+    data.each do |data_item|            
+      send(associate) << FactoryGirl.build(*prepend_values_to_factory(data_item))
     end
     
   end  

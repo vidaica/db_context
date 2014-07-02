@@ -38,11 +38,31 @@ describe ActiveRecord::Base do
       end         
       
       it 'works with an explicit factory' do
-        @father.has_foster_children @children_data, insertion_method, :factory => :child
+        @father.has_foster_children @children_data, insertion_method, :factory => 'child'
         @father.foster_children.count.should be @children_data.count
       end
       
-      it 'returns caller by default' do      
+      it 'supports factory_girl traits' do
+        @father.has_foster_children @children_data, insertion_method, :factory => [:child, :male]
+        @father.foster_children.map(&:gender).uniq.should eq ['male']
+      end
+      
+      it 'supports custom values in factory' do
+        @father.has_foster_children @children_data, insertion_method, :factory => [:child, :male, gender: 'female']
+        @father.foster_children.map(&:gender).uniq.should eq ['female']
+      end
+      
+      it 'makes values in data overide values in factory' do
+        @children_data.each{|item| item[:gender] = 'neutral'}
+        @father.has_foster_children @children_data, insertion_method, :factory => [:child, :male, gender: 'female']
+        @father.foster_children.map(&:gender).uniq.should eq ['neutral']
+      end
+      
+      it 'raises error if factory is not an Array, String or Symbol' do        
+        expect{@father.has_foster_children(@children_data, insertion_method, factory: {})}.to raise_exception(DbContext::InvalidFactoryType)
+      end
+      
+      it 'returns caller by default' do
         @father.has_children( @children_data, insertion_method ).should be @father      
       end
       
@@ -89,8 +109,8 @@ describe ActiveRecord::Base do
   describe 'has_n_associates method' do
            
     it 'delegates to Array.has_n_associates' do
-      Array.any_instance.should_receive(:has_3_children).with(:girl, :next, :factory => :child, :data => [])
-      @father.has_3_children( :girl, :next, :factory => :child, :data => [] )
+      Array.any_instance.should_receive(:has_3_children).with(:girl, :next, :factory => [:child, :male, :gender => 'female'], :data => [])
+      @father.has_3_children( :girl, :next, :factory => [:child, :male, :gender => 'female'], :data => [] )
     end          
     
     it 'returns array of children with :next directive' do      

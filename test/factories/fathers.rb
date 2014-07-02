@@ -3,6 +3,11 @@ FactoryGirl.define do
   factory :father do
     name "Father"
     nickname "Nick"
+    complexion 'none'
+    
+    trait :white do
+      complexion 'white'
+    end
     
     factory :another_father do
       name "Another Father"

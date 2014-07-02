@@ -5,8 +5,8 @@ describe Fixnum do
   describe 'active_record_creating' do
     
     it 'delegates to ActiveRecord::create_n_instances' do
-      Father.should_receive(:create_3).with(:import, :skip_validation, :factory => :another_father)
-      3.Father(:import, :skip_validation, :factory => :another_father)
+      Father.should_receive(:create_3).with(:import, :skip_validation, :factory => [:another_father, :white, :complexion => 'black'])
+      3.Father(:import, :skip_validation, :factory => [:another_father, :white, :complexion => 'black'])
     end
     
     it 'returns the newly created instances' do
