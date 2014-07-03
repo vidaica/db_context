@@ -36,6 +36,18 @@ describe Array do
       @fathers.each {|father| father.children.count.should be @children.count/@fathers.count  }
     end
     
+    it 'allocates extra objects randomly if the number of items does not equal to the number of associate objects' do
+      @children << FactoryGirl.create(:child)
+      extra_child_assigned_at_indexes = []
+      100.times do
+        @children.belongs_to(@fathers)
+        @fathers.each_with_index do |father, index|
+          extra_child_assigned_at_indexes << index if father.children.count == 2
+        end
+      end
+      extra_child_assigned_at_indexes.uniq.sort.should eq [0,1,2]
+    end
+    
     it 'accepts a single associate object' do
       one_father = @fathers.first
       @children.belongs_to one_father
@@ -291,7 +303,7 @@ describe Array do
       @fathers =  3.times.map{FactoryGirl.create(:father)}
     end
     
-    it 'assigns the associate objects to items' do
+    it 'assigns all the associate objects to items' do
       @fathers.has @children
       @fathers.map{|father| father.children.map(&:id)}.flatten.sort.should == @children.map(&:id).sort
     end
@@ -299,19 +311,18 @@ describe Array do
     it 'allocates items equally to associate objects' do
       @fathers.has @children      
       @fathers.each {|father| father.children.count.should be @children.count/@fathers.count  }
-    end
+    end    
     
-    it 'assigns extra associate objects randomly to items' do
-      @children << FactoryGirl.create(:child)       
-      updated_indexes = []            
-      100.times do        
-        @fathers.has @children   
+    it 'allocates extra associate objects randomly' do
+      @children << FactoryGirl.create(:child)
+      extra_child_assigned_at_indexes = []
+      100.times do
+        @fathers.has @children
         @fathers.each_with_index do |father, index|
-          updated_indexes << index if father.children.count == 3
+          extra_child_assigned_at_indexes << index if father.children.count == 3
         end
-        @fathers.each{|father| father.children.destroy_all }
-      end              
-      updated_indexes.flatten.uniq.sort.should == [0,1,2]        
+      end
+      extra_child_assigned_at_indexes.uniq.sort.should eq [0,1,2]
     end
     
     it 'works with an explicit associate' do
@@ -328,7 +339,27 @@ describe Array do
     end
     
   end
+  
+  describe 'serial_update method' do
     
+    it 'updates objects of the caller serially' do
+      
+      fathers = 5.times.map{ FactoryGirl.create :father }
+      
+      fathers.serial_update :number => [0,1,2,3], :name => ['zero', 'one', 'two']
+      
+      fathers[0].number.should   be 0
+      fathers[1].number.should   be 1
+      fathers[2].number.should   be 2
+      fathers[3].number.should   be 3
+      
+      fathers[0].name.should     eq 'zero'
+      fathers[1].name.should     eq 'one'
+      fathers[2].name.should     eq 'two'
+      
+    end
+    
+  end    
   
   def assert_array_of_children(arr, item_count)
     arr.count.should be item_count

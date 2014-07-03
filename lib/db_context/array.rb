@@ -20,18 +20,18 @@ class Array
     
     self.directives, self.options = split_arguments(args)
     
-    self.each_slice(self.count/associate_objects.count).zip(associate_objects).each do |pair|
-      
-      records, associate_object = pair
-      
-      records.each do |record|
-        
-        record.belongs_to associate_object, :associate => options[:associate]
-        
-      end
+    allocating_scheme = generate_allocating_scheme(self.count, associate_objects.count)
+    
+    indexes = (0...self.count).to_a
+    
+    associate_objects.zip(allocating_scheme).each do |associate_object, number_of_items|
+           
+      indexes.shift(number_of_items).each do |index|
+        self[index].belongs_to associate_object, :associate => options[:associate]
+      end    
       
     end
-       
+        
     return_self? ? self : associate_objects
     
   end
@@ -40,37 +40,35 @@ class Array
     
     self.directives, self.options = split_arguments(args)
           
-    associate = options[:associate].nil? ? associate_objects.first.class.name.downcase.pluralize : options[:associate]
+    associate = options[:associate].nil? ? associate_objects.first.class.name.downcase.pluralize : options[:associate]      
     
-    allocating_scheme = generate_allocating_scheme(associate_objects.count)
+    allocating_scheme = generate_allocating_scheme(associate_objects.count, self.count)
     
-    self.zip(allocating_scheme).each do |pair|
-      
-      object, number_of_allocated_associate_objects = pair
-      
-      number_of_allocated_associate_objects.times do
-                
-        associate_object = FactoryGirl.build(*prepend_values_to_factory(data[data_index]))
-        associate_object.send( "#{associate_foreign_key}=", object.id )
-        associate_objects << associate_object
-        
-        data_index = data_index + 1
-        
-      end
-      
-    end 
-        
-    #associate_objects.each_slice(associate_objects.count/self.count).zip(self).each do |associate_slice, item|
-    #       
-    #  associate_slice.each do |associate_object|
-    #    
-    #    item.send(associate) << associate_object
-    #    
-    #  end
-    #  
-    #end
+    indexes = (0...associate_objects.count).to_a
     
+    self.zip(allocating_scheme).each do |item, number_of_associate_objects|
+           
+      indexes.shift(number_of_associate_objects).each do |index|        
+        item.send(associate) << associate_objects[index]
+      end    
+      
+    end
+            
     return_self? ? self : associate_objects
+    
+  end
+  
+  def serial_update(attributes)
+    
+    number_of_updated_objects = attributes.collect{ |attr, values| values.count }.max
+    
+    updated_objects = self.first(number_of_updated_objects)
+    
+    attributes.each_pair do |attribute, values|
+      values.each_with_index do |value, index|
+        updated_objects[index].update_attribute attribute, value
+      end
+    end
     
   end
   
@@ -176,12 +174,14 @@ class Array
     
   end
   
-  def generate_allocating_scheme(number_of_associate_objects)
+  def generate_allocating_scheme(number_of_allocated_objects, number_of_receiving_objects = nil)
     
-    allocating_scheme = [number_of_associate_objects/self.count]*self.count
+    number_of_receiving_objects = self.count if number_of_receiving_objects.nil?
+    
+    allocating_scheme = [number_of_allocated_objects/number_of_receiving_objects]*number_of_receiving_objects
           
-    ( number_of_associate_objects - (number_of_associate_objects/self.count)*self.count ).times do
-      allocating_scheme[rand(self.count-1)] += 1
+    ( number_of_allocated_objects - (number_of_allocated_objects/number_of_receiving_objects)*number_of_receiving_objects ).times do
+      allocating_scheme[rand(number_of_receiving_objects)] += 1
     end
     
     allocating_scheme
