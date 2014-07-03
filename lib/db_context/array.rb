@@ -279,7 +279,7 @@ class Array
   end  
   
   def delete_existing_associate_objects()
-    associate_class.where([" #{associate_foreign_key} IN (?)", self.map(&:id) ]).delete_all
+    associate_class.where([" #{associate_foreign_key} IN (?)", self.map(&:id) ]).destroy_all
   end          
   
   def reflection()

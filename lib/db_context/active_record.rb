@@ -136,7 +136,7 @@ class ActiveRecord::Base
   end   
   
   def delete_existing_associate_objects()
-    associate_class.where([" #{associate_foreign_key} = (?)", self.id ]).delete_all
+    associate_class.where([" #{associate_foreign_key} = (?)", self.id ]).destroy_all
   end  
   
 end
