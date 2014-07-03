@@ -212,6 +212,17 @@ describe ActiveRecord::Base do
     
   end
   
+  describe 'a method' do
+    
+    it 'loads all objects into an array' do
+      
+      5.times{ FactoryGirl.create :father }
+      Father.a.map(&:id).sort.should eq Father.all.to_a.map(&:id).sort
+      
+    end
+    
+  end
+  
   describe 'a non-defined method is called' do
     it 'raises NoMethodError' do
       expect {Father.non_existing_method}.to raise_exception(NoMethodError)

@@ -24,6 +24,10 @@ class << ActiveRecord::Base
     
   end
   
+  def a
+    self.all.to_a
+  end
+  
   def serial_update(attributes)
     
     number_of_updated_objects = attributes.collect{ |attr, values| values.count }.max

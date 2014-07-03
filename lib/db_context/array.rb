@@ -196,10 +196,8 @@ class Array
     
     data_index = 0
                             
-    self.zip(allocating_scheme).each do |pair|
-      
-      object, number_of_allocated_associate_objects = pair
-      
+    self.zip(allocating_scheme).each do |object, number_of_allocated_associate_objects|
+            
       number_of_allocated_associate_objects.times do
                 
         associate_object = FactoryGirl.build(*prepend_values_to_factory(data[data_index]))
@@ -222,10 +220,8 @@ class Array
     
     data_index = 0
     
-    self.zip(allocating_scheme).each do |pair|
-            
-      object, number_of_allocated_associate_objects = pair
-      
+    self.zip(allocating_scheme).each do |object, number_of_allocated_associate_objects|
+                  
       number_of_allocated_associate_objects.times do
                 
         object.send(associate) << FactoryGirl.create(*prepend_values_to_factory(data[data_index]))
