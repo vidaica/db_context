@@ -2,7 +2,7 @@ FactoryGirl.define do
   
   factory :child do
     
-    name "Child"
+    sequence(:name){|n| "Child #{n}"}
     nickname "Nick"
     gender "None"
     
@@ -18,6 +18,8 @@ FactoryGirl.define do
     factory :invalid_child do
       name ""
     end
+    
+    #after(:build)  { |child| puts(child.name) }
     
   end
      

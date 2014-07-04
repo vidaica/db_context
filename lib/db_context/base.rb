@@ -18,7 +18,7 @@ module DbContext
         
         if matches
           self.send(defining_method, method_name, matches)
-          return self.send(method_name,*args) #execute the newly defined method and return the result
+          return self.send(method_name,*args, &block) #execute the newly defined method and return the result
         end
         
       end
@@ -73,11 +73,7 @@ module DbContext
     
     def associate_class()
       reflection.klass
-    end          
-    
-    def factory_old()
-      ( options[:factory].nil? ? associate.singularize : options[:factory] ).to_sym
-    end
+    end      
     
     def factory()
       if options[:factory].nil?
@@ -114,15 +110,6 @@ module DbContext
       self.class.class_eval(&block)
     end
          
-  end
-    
-  class FailedImportError < Exception
-  end
-  
-  class InvalidCreateMethod < Exception
-  end
-  
-  class InvalidFactoryType < Exception
-  end
+  end    
 
 end

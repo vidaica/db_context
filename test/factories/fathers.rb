@@ -1,7 +1,7 @@
 FactoryGirl.define do
   
   factory :father do
-    name "Father"
+    sequence(:name){|n| "Father #{n}"}
     nickname "Nick"
     complexion 'none'
     
@@ -12,6 +12,10 @@ FactoryGirl.define do
     factory :another_father do
       name "Another Father"
       nickname "Another Nick"
+    end
+    
+    factory :white_father do
+      complexion 'white'
     end
     
     factory :invalid_father do

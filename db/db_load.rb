@@ -11,4 +11,6 @@ ActiveRecord::Base.logger = Logger.new( File.open log_file , 'w')
 
 require File.dirname(__FILE__) + '/models/father.rb'
 require File.dirname(__FILE__) + '/models/child.rb'
+require File.dirname(__FILE__) + '/models/boss.rb'
+require File.dirname(__FILE__) + '/models/toy.rb'
 

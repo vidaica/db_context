@@ -6,33 +6,41 @@ describe Array do
     @fathers = 3.times.map{ FactoryGirl.create :father }
   end
   
-  describe 'belongs_to' do
+  describe 'belong_to method' do
     
     before :each do
       @children = 3.times.map{ FactoryGirl.create :child }    
     end
     
+    it 'delegates to belong_to_associates' do      
+      @children.should_receive(:belong_to_fathers).with(@fathers, :next)
+      @children.belongs_to @fathers, :next
+    end
+            
+  end
+  
+  describe 'belong_to_associates method' do
+    
+    before :each do
+      @children = 3.times.map{ FactoryGirl.create :child }
+    end
+    
     it 'connects object with associate objects' do        
-      @children.belongs_to @fathers
+      @children.belong_to_fathers @fathers
       @children.map{|child| child.father.id }.should == @fathers.map(&:id)
     end       
-    
-    it 'works with an explicit associate' do
-      @children.belongs_to @fathers, :associate => :foster_father
-      @children.map{|child| child.foster_father.id }.should == @fathers.map(&:id)
-    end
-     
+        
     it 'returns caller by default' do
-      @children.belongs_to(@fathers).should be @children
+      @children.belong_to_fathers(@fathers).should be @children
     end
     
     it 'returns associate objects with :next directive' do
-      @children.belongs_to(@fathers, :next).should be @fathers
+      @children.belong_to_fathers(@fathers, :next).should be @fathers
     end
     
     it 'allocates items equally to associate objects' do
       @children = @children + 3.times.map{ FactoryGirl.create :child }
-      @children.belongs_to @fathers
+      @children.belong_to_fathers @fathers
       @fathers.each {|father| father.children.count.should be @children.count/@fathers.count  }
     end
     
@@ -40,7 +48,7 @@ describe Array do
       @children << FactoryGirl.create(:child)
       extra_child_assigned_at_indexes = []
       100.times do
-        @children.belongs_to(@fathers)
+        @children.belong_to_fathers(@fathers)
         @fathers.each_with_index do |father, index|
           extra_child_assigned_at_indexes << index if father.children.count == 2
         end
@@ -50,8 +58,20 @@ describe Array do
     
     it 'accepts a single associate object' do
       one_father = @fathers.first
-      @children.belongs_to one_father
+      @children.belong_to_fathers one_father
       one_father.children.map(&:id).sort.should eq @children.map(&:id).sort
+    end
+    
+    it 'does not raise exceptions if an empty array is passed' do
+      expect{@children.belong_to_fathers []}.not_to raise_exception
+    end
+    
+    it 'raises exception if an association cannot be extracted from the method name' do
+      expect{@children.belong_to_fake_associations(@fathers)}.to raise_exception(DbContext::NonExistentRelationship)
+    end
+    
+    it 'raises exception if the relationship extracted from the method name is not a belongs_to relationship' do      
+      expect{@children.belong_to_toys(@fathers)}.to raise_exception(DbContext::BelongsToRelationshipExpected)
     end
                      
   end
@@ -74,14 +94,22 @@ describe Array do
             
       100.times do        
         @fathers.each_has_4_children
-        @fathers.random_update_2_children(name:'updated_name')
+        @fathers.random_update_1_children(name:'updated_name')
         @fathers.first.children.order('id asc').each_with_index do |child, index|
           updated_indexes << index if child.name == 'updated_name'
         end
       end      
       
-      updated_indexes.flatten.uniq.sort.should == [0,1,2,3]
+      updated_indexes.uniq.sort.should == [0,1,2,3]
       
+    end
+    
+    it 'raises exception if an association cannot be extracted from the method name' do
+      expect{@fathers.random_update_1_fake_associations(name:'updated_name')}.to raise_exception(DbContext::NonExistentRelationship)
+    end
+    
+    it 'raises exception if the relationship extracted from the method name is not a has_many relationship' do      
+      expect{@fathers.random_update_1_boss(name:'updated_name')}.to raise_exception(DbContext::HasManyRelationshipExpected)
     end
     
   end
@@ -184,7 +212,7 @@ describe Array do
       end
       
       it 'ignores validation with :skip_validation directive' do
-        expect{ @fathers.has_3_children :skip_validation, :factory => :invalid_child }.not_to raise_exception(DbContext::FailedImportError)
+        expect{ @fathers.has_3_children :skip_validation, :factory => :invalid_child }.not_to raise_exception
       end
       
       it_should_behave_like 'a good insertion method for Array#has_n_associates'
@@ -200,12 +228,20 @@ describe Array do
       
       it_should_behave_like 'a good insertion method for Array#has_n_associates', :girl
       
-    end  
+    end
+    
+    it 'raises exception if an association cannot be extracted from the method name' do
+      expect{@fathers.have_3_fake_associations}.to raise_exception(DbContext::NonExistentRelationship)
+    end
+    
+    it 'raises exception if the relationship extracted from the method name is not a has_many relationship' do      
+      expect{@fathers.have_3_boss}.to raise_exception(DbContext::HasManyRelationshipExpected)
+    end
     
   end
    
   
-  describe 'each_has_n_associates method' do             
+  describe 'each_has_n_associates method' do        
     
     shared_examples_for 'a good insertion method for Array#each_has_n_associates' do |insertion_method|
     
@@ -231,6 +267,24 @@ describe Array do
       it 'supports attribute values in factory' do
         @fathers.each_has_3_foster_children insertion_method, :factory => [:child, :male, :gender => 'female']
         @fathers.map { |father| father.foster_children.map(&:gender) }.flatten.uniq.should eq ['female']
+      end
+      
+      it 'accepts a block' do        
+        @fathers.each_has_3_foster_children(insertion_method, :factory => :child) do |father, child_attributes|
+          child_attributes['name'] = "Child of #{father.name}"
+        end
+        @fathers.each do |father|
+          father.foster_children.each do |child|
+            child.name.should eq "Child of #{father.name}"
+          end
+        end
+      end
+      
+      it 'makes values changed in the passed block overide values in factory' do
+        @fathers.each_has_3_foster_children insertion_method, :factory => [:child, :male, :gender => 'female'] do |father, foster_child_attributes|
+          foster_child_attributes[:gender] = 'male'
+        end
+        @fathers.map { |father| father.foster_children.map(&:gender) }.flatten.uniq.should eq ['male']
       end
             
       it 'deletes all existing associate objects' do     
@@ -272,11 +326,11 @@ describe Array do
       end
            
       it 'activates validation by default' do
-        expect{ @fathers.each_has_3_children :factory => :invalid_child }.to raise_exception(DbContext::FailedImportError)
+        expect{ @fathers.each_has_3_children :factory => :invalid_child }.to raise_exception
       end
       
       it 'ignores validation with :skip_validation directive' do
-        expect{ @fathers.each_has_3_children :skip_validation, :factory => :invalid_child }.not_to raise_exception(DbContext::FailedImportError)
+        expect{ @fathers.each_has_3_children :skip_validation, :factory => :invalid_child }.not_to raise_exception
       end
       
       it_should_behave_like 'a good insertion method for Array#each_has_n_associates'
@@ -285,18 +339,103 @@ describe Array do
     
     describe 'using factory_girl for database insertion' do
       
-      it 'uses factory_girl for database insertion with :girl directive' do      
-        @fathers.should_receive(:create_associate_objects_for_each_item_by_factory_girl)
+      it 'uses factory_girl for database insertion with :girl directive' do        
+        FactoryGirl.should_receive(:create).exactly(9).times
         @fathers.each_has_3_children :girl    
       end
       
       it_should_behave_like 'a good insertion method for Array#each_has_n_associates', :girl
       
-    end  
+    end
+    
+    it 'raises exception if an association cannot be extracted from the method name' do      
+      expect{@fathers.each_has_1_fake_associations}.to raise_exception(DbContext::NonExistentRelationship)
+    end
+    
+    it 'raises exception if the relationship extracted from the method name is not a has_many relationship' do      
+      expect{@fathers.each_has_1_boss}.to raise_exception(DbContext::HasManyRelationshipExpected)
+    end
                      
   end
   
-  describe 'has method' do
+  describe "make_associate method" do
+    
+    before :each do
+      @children = 3.times.map{FactoryGirl.create :child}
+    end
+    
+    it 'creates owner object for each item of array' do      
+      @children.make_father
+      @children.each do |child|
+        child.reload.father.should_not be nil
+      end
+    end
+    
+    it 'works with an explicit factory' do
+      @children.make_father :factory => :white_father
+      @children.map{|child| child.father.complexion}.uniq.should eq ['white']    
+    end
+    
+    it 'supports factory_girl traits' do
+      @children.make_father :factory => [:father, :white]
+      @children.map{|child| child.father.complexion}.uniq.should eq ['white']
+    end
+    
+    it 'supports attribute values in factory' do
+      @children.make_father :factory => [:father, :white, :complexion => 'black']
+      @children.map{|child| child.father.complexion}.uniq.should eq ['black']      
+    end
+    
+    it 'accepts a block' do
+      
+      @children.make_father(:factory => [:father, :white, :complexion => 'black']) do |child, father_attributes|
+        father_attributes[:name] = "Father of #{child.name}"
+      end
+              
+      @children.each do |child|
+        child.father.name.should eq "Father of #{child.name}"
+      end
+      
+    end
+    
+    it 'makes values changed in the passed block overide values in factory' do
+      
+      @children.make_father(:factory => [:father, :white, :complexion => 'black']) do |child, father_attributes|
+        father_attributes[:complexion] = "yellow"
+      end
+      
+      @children.map{|child| child.father.complexion}.uniq.should eq ['yellow']
+      
+    end
+    
+    it 'returns caller by default' do      
+      @children.make_father.should be @children      
+    end
+    
+    it 'returns an array of owner objects with :next directive' do      
+      fathers = @children.make_father(:next)      
+      @children.map{|child| child.father.id}.sort.should eq fathers.map(&:id).sort
+      fathers.each do |father|
+        father.class.should be Father
+      end
+    end
+    
+    it 'uses factory_girl for database insertion' do        
+      FactoryGirl.should_receive(:create).exactly(@children.count).times
+      @children.make_father  
+    end
+    
+    it 'raises exception if an association cannot be extracted from the method name' do
+      expect{@children.make_fake_association}.to raise_exception(DbContext::NonExistentRelationship)
+    end
+    
+    it 'raises exception if the relationship extracted from the method name is not a belongs_to relationship' do      
+      expect{@children.make_toys}.to raise_exception(DbContext::BelongsToRelationshipExpected)
+    end
+    
+  end
+    
+  describe 'add_associates method' do
     
     before :each do
       @children = 6.times.map{FactoryGirl.create(:child)}
@@ -304,12 +443,12 @@ describe Array do
     end
     
     it 'assigns all the associate objects to items' do
-      @fathers.has @children
+      @fathers.add_children @children
       @fathers.map{|father| father.children.map(&:id)}.flatten.sort.should == @children.map(&:id).sort
     end
     
     it 'allocates items equally to associate objects' do
-      @fathers.has @children      
+      @fathers.add_children @children      
       @fathers.each {|father| father.children.count.should be @children.count/@fathers.count  }
     end    
     
@@ -317,7 +456,7 @@ describe Array do
       @children << FactoryGirl.create(:child)
       extra_child_assigned_at_indexes = []
       100.times do
-        @fathers.has @children
+        @fathers.add_children @children
         @fathers.each_with_index do |father, index|
           extra_child_assigned_at_indexes << index if father.children.count == 3
         end
@@ -325,17 +464,42 @@ describe Array do
       extra_child_assigned_at_indexes.uniq.sort.should eq [0,1,2]
     end
     
-    it 'works with an explicit associate' do
-      @fathers.has @children, :associate => 'foster_children'
-      @fathers.map{|father| father.foster_children.map(&:id)}.flatten.sort.should == @children.map(&:id).sort
-    end
-    
+    it 'accepts a block and applies any changes made by the block' do
+      
+      @fathers.add_children @children do |father, child|
+        
+        father.name = 'Ben'
+        
+        child.name = "Child of #{father.name}"
+        
+      end
+              
+      @fathers.each do |father|
+        
+        father.reload.name.should eq 'Ben'
+        
+        father.children.each do |child|
+          child.reload.name.should eq "Child of #{father.name}"
+        end
+        
+      end
+      
+    end      
+       
     it 'returns the caller by default' do
-      @fathers.has(@children).should be @fathers
+      @fathers.add_children(@children).should be @fathers
     end
     
     it 'returns the the associate objects with :next directive' do
-      @fathers.has(@children, :next).should be @children
+      @fathers.add_children(@children, :next).should be @children
+    end
+    
+    it 'raises exception if an association cannot be extracted from the method name' do      
+      expect{@fathers.add_fake_associations(@children)}.to raise_exception(DbContext::NonExistentRelationship)
+    end
+    
+    it 'raises exception if the relationship extracted from the method name is not a has_many relationship' do      
+      expect{@fathers.add_boss @children}.to raise_exception(DbContext::HasManyRelationshipExpected)
     end
     
   end
