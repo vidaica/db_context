@@ -2,7 +2,7 @@ module DbContext
   
   module MethodDefiner
     
-    attr_accessor :directives, :associate, :options
+    attr_accessor :directives, :association_name, :options
     
     def self.included(klass)
       
@@ -51,9 +51,9 @@ module DbContext
       
     end
             
-    def import_associate_objects(associate_objects)
+    def import_associated_objects(associated_objects)
       
-      import_activerecord_objects associate_class, associate_objects            
+      import_activerecord_objects associated_class, associated_objects            
       
     end
     
@@ -67,18 +67,18 @@ module DbContext
       [directives, options]
     end     
     
-    def associate_foreign_key()
+    def association_foreign_key()
       reflection.foreign_key
     end
     
-    def associate_class()
+    def associated_class()
       reflection.klass
     end      
     
     def factory()
       if options[:factory].nil?
-        if !self.associate.nil?
-          [self.associate.singularize.to_sym]
+        if !self.association_name.nil?
+          [self.association_name.singularize.to_sym]
         else
           [self.name.underscore.to_sym]
         end
@@ -103,7 +103,7 @@ module DbContext
     end
     
     def return_self?
-      ! (directives & [:here, :next]).any?
+      ! (directives & [:here, :assoc]).any?
     end
     
     def klass_eval(&block)

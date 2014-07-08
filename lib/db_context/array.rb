@@ -5,73 +5,78 @@ class Array
   def method_missing(method_name, *args, &block)
               
     definers = {
-      /^belongs?_to_([0-9a-zA-Z_]+)$/               => 'belong_to_associates',
-      /^make_([0-9a-zA-Z_]+)$/                      => 'make_associates',
-      /^add_([0-9a-zA-Z_]+)$/                       => 'add_associates',
-      /^each_has_(\d+)_([0-9a-zA-Z_]+)$/            => 'each_has_n_associates',
-      /^(has|have)_(\d+)_([0-9a-zA-Z_]+)$/          => 'has_n_associates',
-      /^random_update_(\d+)_([0-9a-zA-Z_]+)$/       => 'random_update_n_associates'
+      /^belongs?_to(_[0-9a-zA-Z_]+)?$/              => 'belong_to___association_name__',
+      /^make_([0-9a-zA-Z_]+)$/                      => 'make___association_name__',
+      /^add_([0-9a-zA-Z_]+)$/                       => 'add___association_name__',
+      /^each_has_(\d+)_([0-9a-zA-Z_]+)$/            => 'each_has_n___association_name__',
+      /^(has|have)_(\d+)_([0-9a-zA-Z_]+)$/          => 'has_n___association_name__',
+      /^random_update_(\d+)_([0-9a-zA-Z_]+)$/       => 'random_update_n___association_name__'
     }
     
     define_missing_method( method_name, definers, *args, &block )
         
-  end
-  
-  def belong_to(associate_objects, *args)            
-    associate = ( associate_objects.is_a?(Array) ? associate_objects.first :  associate_objects).class.name.downcase    
-    self.send("belong_to_#{associate.pluralize}", associate_objects, *args)
-  end
-  
-  alias_method :belongs_to, :belong_to
+  end  
     
-  def serial_update(attributes)
+  def serial_update(attributes, &block)
     
     number_of_updated_objects = attributes.collect{ |attr, values| values.count }.max
     
     updated_objects = self.first(number_of_updated_objects)
-    
-    attributes.each_pair do |attribute, values|
-      values.each_with_index do |value, index|
-        updated_objects[index].update_attribute attribute, value
+       
+    updated_objects.zip( normalize_attributes(attributes,number_of_updated_objects) ).each do |object, attr|
+      
+      object.update_attributes(attr)
+      
+      if !block.nil?
+        block.call(object)
+        object.save! if object.changed?
       end
-    end
+      
+    end        
+    
+    self
     
   end
   
   private
   
-  def belong_to_associates(method_name, matches)
+  def belong_to___association_name__(method_name, matches)
     
     klass_eval do
       
-      define_method method_name do |associate_objects, *args|
+      define_method method_name do |associated_objects, *args, &block|
                 
-        associate_objects = [associate_objects] if ! associate_objects.is_a?(Array)
+        associated_objects = [associated_objects] if ! associated_objects.is_a?(Array)
         
-        return if associate_objects.empty?
+        return if associated_objects.empty?
     
         self.directives, self.options = split_arguments(args)
         
-        self.associate = matches[1].singularize
+        self.association_name = ( ! matches[1].nil? ? matches[1].sub(/^_/,'') : associated_objects.first.class.name.downcase ).singularize
+                
+        assert_associations(:exist, :belongs_to)
         
-        assert_relationships(:exist, :belongs_to)
-        
-        allocating_scheme = generate_allocating_scheme(self.count, associate_objects.count)
+        allocating_scheme = generate_allocating_scheme(self.count, associated_objects.count)
         
         indexes = (0...self.count).to_a
         
-        associate_objects.zip(allocating_scheme).each do |associate_object, number_of_items|
+        associated_objects.zip(allocating_scheme).each do |associated_object, number_of_items|
                
           indexes.shift(number_of_items).each do |index|
-                        
-            self[index].send("#{associate}=", associate_object)
+              
+            if ! block.nil?
+              block.call(self[index], associated_object)
+              associated_object.save! if associated_object.changed?
+            end
+            
+            self[index].send("#{self.association_name}=", associated_object)
             self[index].save!
             
           end
           
         end
             
-        return_self? ? self : associate_objects
+        return_self? ? self : associated_objects
                       
       end
       
@@ -79,7 +84,7 @@ class Array
     
   end
   
-  def make_associates(method_name, matches)
+  def make___association_name__(method_name, matches)
     
     klass_eval do
       
@@ -87,20 +92,20 @@ class Array
         
         self.directives, self.options = split_arguments(args)
         
-        self.associate = matches[1].singularize
+        self.association_name = matches[1].singularize
         
-        assert_relationships(:exist, :belongs_to)
+        assert_associations(:exist, :belongs_to)
        
         self.each do |item|
           
           attributes = FactoryGirl.attributes_for(*factory)
           block.call(item, attributes) if !block.nil?          
-          item.send("#{associate}=", FactoryGirl.create(*prepend_values_to_factory(attributes)))
-          item.save
+          item.send("#{self.association_name}=", FactoryGirl.create(*prepend_values_to_factory(attributes)))
+          item.save!
           
         end
         
-        return_self? ? self : self.map{|item| item.send("#{associate}")}
+        return_self? ? self : self.map{|item| item.send("#{self.association_name}")}
         
       end
       
@@ -108,39 +113,39 @@ class Array
     
   end      
   
-  def add_associates(method_name, matches)
+  def add___association_name__(method_name, matches)
                   
     klass_eval do
       
-      define_method method_name do |associate_objects, *args, &block|
+      define_method method_name do |associated_objects, *args, &block|
         
         self.directives, self.options = split_arguments(args)
           
-        self.associate = matches[1]
+        self.association_name = matches[1]
         
-        assert_relationships(:exist, :has_many)
+        assert_associations(:exist, :has_many)
         
-        allocating_scheme = generate_allocating_scheme(associate_objects.count, self.count)
+        allocating_scheme = generate_allocating_scheme(associated_objects.count, self.count)
         
-        indexes = (0...associate_objects.count).to_a
+        indexes = (0...associated_objects.count).to_a
         
-        self.zip(allocating_scheme).each do |item, number_of_associate_objects|
+        self.zip(allocating_scheme).each do |item, number_of_associated_objects|
                
-          indexes.shift(number_of_associate_objects).each do |index|
+          indexes.shift(number_of_associated_objects).each do |index|
             
             if ! block.nil?
-              block.call(item, associate_objects[index])
+              block.call(item, associated_objects[index])
               item.save! if item.changed?
             end
             
-            associate_objects[index].send("#{associate_foreign_key}=", item.id)
-            associate_objects[index].save!
+            associated_objects[index].send("#{association_foreign_key}=", item.id)
+            associated_objects[index].save!
             
           end    
           
         end
                 
-        return_self? ? self : associate_objects
+        return_self? ? self : associated_objects
         
       end
       
@@ -148,39 +153,41 @@ class Array
     
   end  
   
-  def random_update_n_associates(method_name, matches)            
+  def random_update_n___association_name__(method_name, matches)            
     
     klass_eval do
     
-      define_method method_name do |updated_attributes|
+      define_method method_name do |updated_attributes, *args, &block|
         
-        self.associate = matches[2]
+        self.directives, self.options = split_arguments(args)
         
-        number_of_updated_associate_objects = matches[1].to_i
+        self.association_name = matches[2]
         
-        assert_relationships(:exist, :has_many)
-                                            
-        id_hash = {}               
+        number_of_updated_associated_objects = matches[1].to_i
         
-        associate_class    
-        .where( [ "#{associate_foreign_key} IN (?)", self.map(&:id) ] )
-        .each do |associate_object|
-          
-          foreign_key_value = associate_object.send("#{associate_foreign_key}")
-          id_hash[foreign_key_value] = [] if id_hash[foreign_key_value].nil?
-          id_hash[foreign_key_value] << associate_object.id
-          
-        end               
+        assert_associations(:exist, :has_many)
         
-        updated_associate_object_ids = []
+        updated_associte_objects = []
         
-        id_hash.each_pair do |key, associate_object_ids|
+        self.each do |item|
                     
-          updated_associate_object_ids << associate_object_ids.sample(number_of_updated_associate_objects)
+          item.send("#{self.association_name}").sample(number_of_updated_associated_objects).each do |updated_object|
+            
+            updated_object.update_attributes(updated_attributes)
+            
+            if ! block.nil?
+              block.call(item, updated_object)
+              item.save! if item.changed?
+              updated_object.save! if updated_object.changed?
+            end
+                                            
+            updated_associte_objects.push(updated_object)
+            
+          end
           
-        end               
-        
-        associate_class.where( [" id IN (?) ", updated_associate_object_ids.flatten ] ).update_all(updated_attributes)
+        end
+              
+        return_self? ? self : updated_associte_objects
                                                                   
       end
     
@@ -188,33 +195,33 @@ class Array
     
   end
   
-  def has_n_associates(method_name, matches)
+  def has_n___association_name__(method_name, matches)
                   
     klass_eval do
       
-      define_method method_name do |*args|
+      define_method method_name do |*args, &block|
         
-        number_of_associate_objects, self.associate = matches[2].to_i, matches[3]
+        number_of_associated_objects, self.association_name = matches[2].to_i, matches[3]
                 
         self.directives, self.options = split_arguments(args)
         
-        assert_relationships(:exist, :has_many)
+        assert_associations(:exist, :has_many)
         
-        allocating_scheme = generate_allocating_scheme(number_of_associate_objects)
+        allocating_scheme = generate_allocating_scheme(number_of_associated_objects)
         
-        delete_existing_associate_objects
+        delete_existing_associated_objects
         
         if insertion_using_import?                 
           
-          create_associate_objects_by_import_using_allocating_schema allocating_scheme, self.options[:data]
+          create_associated_objects_by_import_using_allocating_schema allocating_scheme, self.options[:data], &block
           
         else                   
           
-          create_associate_objects_by_factory_girl_using_allocating_schema allocating_scheme, self.options[:data]
+          create_associated_objects_by_factory_girl_using_allocating_schema allocating_scheme, self.options[:data], &block
           
         end  
               
-        return_self? ? self : newly_created_associate_objects(number_of_associate_objects)
+        return_self? ? self : newly_created_associated_objects(number_of_associated_objects)
         
       end
       
@@ -222,31 +229,31 @@ class Array
     
   end  
        
-  def each_has_n_associates(method_name, matches)
+  def each_has_n___association_name__(method_name, matches)
                   
     klass_eval do
             
       define_method method_name do |*args, &block|
                       
-        number_of_associate_objects, self.associate = matches[1].to_i,  matches[2]
+        number_of_associated_objects, self.association_name = matches[1].to_i,  matches[2]
         
-        assert_relationships(:exist, :has_many)
+        assert_associations(:exist, :has_many)
         
         self.directives, self.options = split_arguments(args)
                                       
-        delete_existing_associate_objects
+        delete_existing_associated_objects
         
         if insertion_using_import?
           
-          create_associate_objects_for_each_item_by_import(number_of_associate_objects, &block)
+          create_associated_objects_for_each_item_by_import(number_of_associated_objects, &block)
                                  
         else
           
-          create_associate_objects_for_each_item_by_factory_girl(number_of_associate_objects, &block)  
+          create_associated_objects_for_each_item_by_factory_girl(number_of_associated_objects, &block)  
                             
         end
                        
-        return_self? ? self : newly_created_associate_objects
+        return_self? ? self : newly_created_associated_objects
                 
       end
       
@@ -268,21 +275,28 @@ class Array
     
   end  
   
-  def create_associate_objects_by_import_using_allocating_schema(allocating_scheme, data )
+  def create_associated_objects_by_import_using_allocating_schema(allocating_scheme, data, &block)
     
     data = data || []
     
-    associate_objects = []
+    associated_objects = []
     
     data_index = 0
                             
-    self.zip(allocating_scheme).each do |object, number_of_allocated_associate_objects|
+    self.zip(allocating_scheme).each do |object, number_of_allocated_associated_objects|
             
-      number_of_allocated_associate_objects.times do
-                
-        associate_object = FactoryGirl.build(*prepend_values_to_factory(data[data_index]))
-        associate_object.send( "#{associate_foreign_key}=", object.id )
-        associate_objects << associate_object
+      number_of_allocated_associated_objects.times do
+        
+        attributes = FactoryGirl.attributes_for(*prepend_values_to_factory(data[data_index]))
+        
+        if !block.nil?
+           block.call(object, attributes)
+           object.save! if object.changed?
+        end
+        
+        attributes[:"#{association_foreign_key}"] = object.id
+        
+        associated_objects << FactoryGirl.build(*prepend_values_to_factory(attributes))
         
         data_index = data_index + 1
         
@@ -290,21 +304,28 @@ class Array
       
     end                                         
     
-    import_associate_objects(associate_objects)
+    import_associated_objects(associated_objects)
     
   end
   
-  def create_associate_objects_by_factory_girl_using_allocating_schema(allocating_scheme, data)
+  def create_associated_objects_by_factory_girl_using_allocating_schema(allocating_scheme, data, &block)
     
     data = data || []
     
     data_index = 0
     
-    self.zip(allocating_scheme).each do |object, number_of_allocated_associate_objects|
+    self.zip(allocating_scheme).each do |object, number_of_allocated_associated_objects|
                   
-      number_of_allocated_associate_objects.times do
-                
-        object.send(associate) << FactoryGirl.create(*prepend_values_to_factory(data[data_index]))
+      number_of_allocated_associated_objects.times do
+        
+        attributes = FactoryGirl.attributes_for(*prepend_values_to_factory(data[data_index]))
+        
+        if !block.nil?
+           block.call(object, attributes)
+           object.save! if object.changed?
+        end
+        
+        FactoryGirl.create(*prepend_values_to_factory(attributes.merge(association_foreign_key.to_sym => object.id)))
         
         data_index = data_index + 1
         
@@ -314,78 +335,109 @@ class Array
     
   end
     
-  def create_associate_objects_for_each_item_by_import(number_of_associate_objects, &block)
+  def create_associated_objects_for_each_item_by_import(number_of_associated_objects, &block)
     
-    associate_objects = []
+    associated_objects = []
     
     self.each do |object|
             
-      number_of_associate_objects.times do
-        attributes = FactoryGirl.attributes_for(*factory)       
-        block.call(object, attributes) if !block.nil?
-        attributes[:"#{associate_foreign_key}"] = object.id
-        associate_objects << FactoryGirl.build(*prepend_values_to_factory(attributes))
+      number_of_associated_objects.times do
+        
+        attributes = FactoryGirl.attributes_for(*factory)
+        
+        if !block.nil?
+           block.call(object, attributes)
+           object.save! if object.changed?
+        end
+        
+        attributes[:"#{association_foreign_key}"] = object.id
+        
+        associated_objects << FactoryGirl.build(*prepend_values_to_factory(attributes))
+        
       end
       
     end
     
-    import_associate_objects(associate_objects)
+    import_associated_objects(associated_objects)
                                                                    
   end
   
-  def create_associate_objects_for_each_item_by_factory_girl(number_of_associate_objects, &block)
+  def create_associated_objects_for_each_item_by_factory_girl(number_of_associated_objects, &block)
     
     self.each do |object|
             
-      number_of_associate_objects.times do              
-        attributes = FactoryGirl.attributes_for(*factory)  
-        block.call(object, attributes) if !block.nil?
-        FactoryGirl.create(*prepend_values_to_factory(attributes.merge(associate_foreign_key.to_sym => object.id)))
+      number_of_associated_objects.times do
+        
+        attributes = FactoryGirl.attributes_for(*factory)
+        
+        if !block.nil?
+           block.call(object, attributes)
+           object.save! if object.changed?
+        end
+        
+        FactoryGirl.create(*prepend_values_to_factory(attributes.merge(association_foreign_key.to_sym => object.id)))
+        
       end                  
       
     end
     
   end      
   
-  def newly_created_associate_objects(number_of_associate_objects = -1)
-    associate_objects = associate_class
-                        .where([" #{associate_foreign_key} IN (?)", self.map(&:id) ])
+  def newly_created_associated_objects(number_of_associated_objects = -1)
+    associated_objects = associated_class
+                        .where([" #{association_foreign_key} IN (?)", self.map(&:id) ])
                         .order("id asc")
-    associate_objects.last(number_of_associate_objects) if number_of_associate_objects != -1
-    associate_objects.to_a
+    associated_objects.last(number_of_associated_objects) if number_of_associated_objects != -1
+    associated_objects.to_a
   end  
   
-  def delete_existing_associate_objects()
-    associate_class.where([" #{associate_foreign_key} IN (?)", self.map(&:id) ]).destroy_all
+  def delete_existing_associated_objects()
+    associated_class.where([" #{association_foreign_key} IN (?)", self.map(&:id) ]).destroy_all
   end          
   
   def reflection()
-    self.first.class.reflections[associate.to_sym]
+    self.first.class.reflections[self.association_name.to_sym]
   end
   
-  def assert_relationships(*relationships)
-    relationships.each do |relationship|
-      case relationship
-      when :exist
-        assert_relationship_exist
-      when :has_many
-        assert_has_many_relationship
-      when :belongs_to
-        assert_belongs_to_relationship
+  def normalize_attributes(serial_attributes, number_of_updated_objects)
+       
+    normalized_attributes = number_of_updated_objects.times.map{{}}
+    
+    serial_attributes.each_pair do |attribute, values|   
+      values.each_with_index do |value, index|       
+        normalized_attributes[index][attribute] = value        
       end
     end
+    
+    normalized_attributes
+    
   end
   
-  def assert_relationship_exist
-    raise DbContext::NonExistentRelationship, ":#{associate} association does not exist in #{self.first.class}" if reflection.nil?
+  def assert_associations(*association_types)
+    
+    association_types.each do |type|
+      
+      case type
+        
+      when :exist;        assert_association_exist        
+      when :has_many;     assert_has_many_association        
+      when :belongs_to;   assert_belongs_to_association
+      end
+      
+    end
+    
   end
   
-  def assert_has_many_relationship
-    raise DbContext::HasManyRelationshipExpected, "A has_many relationship is expected. :#{associate} is not a has_many relationship, it is a #{reflection.macro} relationship" if reflection.macro != :has_many
+  def assert_association_exist
+    raise DbContext::NonExistentAssociation, ":#{self.association_name} association does not exist in #{self.first.class}" if reflection.nil?
+  end
+  
+  def assert_has_many_association
+    raise DbContext::HasManyAssociationExpected, "A has_many association is expected. :#{self.association_name} is not a has_many association, it is a #{reflection.macro} association" if reflection.macro != :has_many
   end
     
-  def assert_belongs_to_relationship
-    raise DbContext::BelongsToRelationshipExpected, "A belongs_to relationship is expected. :#{associate} is not a belongs_to relationship, it is a #{reflection.macro} relationship" if reflection.macro != :belongs_to
+  def assert_belongs_to_association
+    raise DbContext::BelongsToAssociationExpected, "A belongs_to association is expected. :#{self.association_name} is not a belongs_to association, it is a #{reflection.macro} association" if reflection.macro != :belongs_to
   end
   
   

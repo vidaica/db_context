@@ -5,44 +5,44 @@ class ActiveRecord::Base
   def method_missing(method_name, *args, &block)                         
     
     definers = {
-      /^has_(\d+)_([a-zA-Z_]+)$/             => 'has_n_associates',
-      /^random_update_(\d+)_([a-zA-Z_]+)$/   => 'random_update_n_associates',
-      /^has_([a-zA-Z_]+)$/                   => 'has_associates'
+      /^has_(\d+)_([a-zA-Z_]+)$/             => 'has_n___association_name__',
+      /^random_update_(\d+)_([a-zA-Z_]+)$/   => 'random_update_n___association_name__',
+      /^has_([a-zA-Z_]+)$/                   => 'has___association_name__'
     }
     
     define_missing_method( method_name, definers, *args, &block )            
         
   end
   
-  def belongs_to(associate_object, *args)
+  def belongs_to(associated_object, *args)
     
     self.directives, self.options = split_arguments(args)
     
-    associate = options[:associate].nil? ? associate_object.class.name.downcase : options[:associate]
-    self.send("#{associate}=", associate_object)
+    self.association_name = options[:association].nil? ? associated_object.class.name.downcase : options[:association]
+    self.send("#{self.association_name}=", associated_object)
     self.save!
     
-    return_self? ? self : associate_object
+    return_self? ? self : associated_object
     
   end
   
-  def has(associate_objects, *args)
+  def has(associated_objects, *args)
     
     self.directives, self.options = split_arguments(args)
           
-    associate = options[:associate].nil? ? associate_objects.first.class.name.downcase.pluralize : options[:associate]
+    self.association_name = options[:association].nil? ? associated_objects.first.class.name.downcase.pluralize : options[:association]
     
-    associate_objects.each do |object|      
-      self.send(associate) << object
+    associated_objects.each do |object|      
+      self.send(self.association_name) << object
     end
     
-    return_self? ? self : associate_objects
+    return_self? ? self : associated_objects
     
   end
   
   private  
   
-  def random_update_n_associates(method_name, matches)
+  def random_update_n___association_name__(method_name, matches)
     
     klass_eval do
       
@@ -59,29 +59,29 @@ class ActiveRecord::Base
   end
   
   
-  def has_associates(method_name, matches)      
+  def has___association_name__(method_name, matches)      
     
     klass_eval do
       
       define_method method_name do |data, *args|
         
-        self.associate = matches[1]
+        self.association_name = matches[1]
             
         self.directives, self.options = split_arguments(args)
         
-        delete_existing_associate_objects
+        delete_existing_associated_objects
         
         if insertion_using_import?
         
-          create_associate_objects_by_import(data)
+          create_associated_objects_by_import(data)
         
         else
           
-          create_associate_objects_by_factory_girl(data)
+          create_associated_objects_by_factory_girl(data)
           
         end
         
-        return_self? ? self : associate_class.where([" #{associate_foreign_key} = (?)", self.id ]).to_a
+        return_self? ? self : associated_class.where([" #{association_foreign_key} = (?)", self.id ]).to_a
         
       end
       
@@ -90,7 +90,7 @@ class ActiveRecord::Base
   end        
   
   
-  def has_n_associates(method_name, matches)     
+  def has_n___association_name__(method_name, matches)     
     
     klass_eval do
       
@@ -109,34 +109,34 @@ class ActiveRecord::Base
   end
   
   
-  def create_associate_objects_by_import(data)                        
+  def create_associated_objects_by_import(data)                        
     
-    associate_objects = []
+    associated_objects = []
         
     data.each do |data_item|                
-      associate_object = FactoryGirl.build(*prepend_values_to_factory(data_item))
-      associate_object.send( "#{associate_foreign_key}=", self.id )
-      associate_objects << associate_object            
+      associated_object = FactoryGirl.build(*prepend_values_to_factory(data_item))
+      associated_object.send( "#{association_foreign_key}=", self.id )
+      associated_objects << associated_object            
     end                    
             
-    import_associate_objects associate_objects       
+    import_associated_objects associated_objects       
     
   end
   
-  def create_associate_objects_by_factory_girl(data)
+  def create_associated_objects_by_factory_girl(data)
         
     data.each do |data_item|            
-      send(associate) << FactoryGirl.build(*prepend_values_to_factory(data_item))
+      send(self.association_name) << FactoryGirl.build(*prepend_values_to_factory(data_item))
     end
     
   end  
     
   def reflection()
-    self.class.reflections[associate.to_sym]
+    self.class.reflections[self.association_name.to_sym]
   end   
   
-  def delete_existing_associate_objects()
-    associate_class.where([" #{associate_foreign_key} = (?)", self.id ]).destroy_all
+  def delete_existing_associated_objects()
+    associated_class.where([" #{association_foreign_key} = (?)", self.id ]).destroy_all
   end  
   
 end

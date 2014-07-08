@@ -9,13 +9,13 @@ module DbContext
   class InvalidFactoryType < Exception
   end
     
-  class NonExistentRelationship < Exception
+  class NonExistentAssociation < Exception
   end
   
-  class HasManyRelationshipExpected < Exception
+  class HasManyAssociationExpected < Exception
   end
   
-  class BelongsToRelationshipExpected < Exception
+  class BelongsToAssociationExpected < Exception
   end
 
 end
