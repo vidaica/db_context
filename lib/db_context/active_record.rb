@@ -5,9 +5,9 @@ class ActiveRecord::Base
   def method_missing(method_name, *args, &block)                         
     
     definers = {
-      /^has_(\d+)_([a-zA-Z_]+)$/             => 'has_n___association_name__',
-      /^random_update_(\d+)_([a-zA-Z_]+)$/   => 'random_update_n___association_name__',
-      /^has_([a-zA-Z_]+)$/                   => 'has___association_name__'
+      /^has_(\d+)_([0-9a-zA-Z_]+)$/             => 'has_n___association_name__',
+      /^random_update_(\d+)_([0-9a-zA-Z_]+)$/   => 'random_update_n___association_name__',
+      /^has_([0-9a-zA-Z_]+)$/                   => 'has___association_name__'
     }
     
     define_missing_method( method_name, definers, *args, &block )            

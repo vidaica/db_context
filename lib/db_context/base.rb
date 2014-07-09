@@ -87,7 +87,7 @@ module DbContext
       elsif options[:factory].is_a?(String) || options[:factory].is_a?(Symbol)
         [options[:factory].to_sym]
       else        
-        raise InvalidFactoryType, 'factory must be an Array, a String or a Symbol'
+        raise TypeError, ':factory must be an Array, a String or a Symbol'
       end
     end
     

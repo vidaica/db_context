@@ -19,6 +19,8 @@ class Array
     
   def serial_update(attributes, &block)
     
+    assert_types(attributes, [Hash])
+    
     number_of_updated_objects = attributes.collect{ |attr, values| values.count }.max
     
     updated_objects = self.first(number_of_updated_objects)
@@ -44,18 +46,23 @@ class Array
     
     klass_eval do
       
-      define_method method_name do |associated_objects, *args, &block|
-                
-        associated_objects = [associated_objects] if ! associated_objects.is_a?(Array)
-        
-        return if associated_objects.empty?
-    
-        self.directives, self.options = split_arguments(args)
+      define_method method_name do |associated_objects, *args, &block|            
+                                    
+        self.directives, self.options = split_arguments(args)              
         
         self.association_name = ( ! matches[1].nil? ? matches[1].sub(/^_/,'') : associated_objects.first.class.name.downcase ).singularize
-                
+        
+        assert_types(associated_objects, [Array, ActiveRecord::Base], "An array or an activerecord object is expected")
+        
         assert_associations(:exist, :belongs_to)
         
+        assert_directives([:assoc])
+        
+        associated_objects = [associated_objects] if associated_objects.is_a?(ActiveRecord::Base)
+        
+        return if associated_objects.empty?
+        
+                                  
         allocating_scheme = generate_allocating_scheme(self.count, associated_objects.count)
         
         indexes = (0...self.count).to_a
@@ -66,11 +73,11 @@ class Array
               
             if ! block.nil?
               block.call(self[index], associated_object)
-              associated_object.save! if associated_object.changed?
+              associated_object.save!(:validate => false) if associated_object.changed?
             end
             
             self[index].send("#{self.association_name}=", associated_object)
-            self[index].save!
+            self[index].save!(:validate => false)
             
           end
           
@@ -95,13 +102,15 @@ class Array
         self.association_name = matches[1].singularize
         
         assert_associations(:exist, :belongs_to)
+        
+        assert_directives([:assoc])
        
         self.each do |item|
           
           attributes = FactoryGirl.attributes_for(*factory)
           block.call(item, attributes) if !block.nil?          
           item.send("#{self.association_name}=", FactoryGirl.create(*prepend_values_to_factory(attributes)))
-          item.save!
+          item.save!(:validate => false)
           
         end
         
@@ -118,12 +127,16 @@ class Array
     klass_eval do
       
       define_method method_name do |associated_objects, *args, &block|
-        
+                      
         self.directives, self.options = split_arguments(args)
           
         self.association_name = matches[1]
         
+        assert_types(associated_objects, [Array])
+        
         assert_associations(:exist, :has_many)
+        
+        assert_directives([:assoc])
         
         allocating_scheme = generate_allocating_scheme(associated_objects.count, self.count)
         
@@ -135,11 +148,11 @@ class Array
             
             if ! block.nil?
               block.call(item, associated_objects[index])
-              item.save! if item.changed?
+              item.save!(:validate=>false) if item.changed?
             end
             
             associated_objects[index].send("#{association_foreign_key}=", item.id)
-            associated_objects[index].save!
+            associated_objects[index].save!(:validate=>false)
             
           end    
           
@@ -151,95 +164,22 @@ class Array
       
     end
     
-  end  
-  
-  def random_update_n___association_name__(method_name, matches)            
-    
-    klass_eval do
-    
-      define_method method_name do |updated_attributes, *args, &block|
-        
-        self.directives, self.options = split_arguments(args)
-        
-        self.association_name = matches[2]
-        
-        number_of_updated_associated_objects = matches[1].to_i
-        
-        assert_associations(:exist, :has_many)
-        
-        updated_associte_objects = []
-        
-        self.each do |item|
-                    
-          item.send("#{self.association_name}").sample(number_of_updated_associated_objects).each do |updated_object|
-            
-            updated_object.update_attributes(updated_attributes)
-            
-            if ! block.nil?
-              block.call(item, updated_object)
-              item.save! if item.changed?
-              updated_object.save! if updated_object.changed?
-            end
-                                            
-            updated_associte_objects.push(updated_object)
-            
-          end
-          
-        end
-              
-        return_self? ? self : updated_associte_objects
-                                                                  
-      end
-    
-    end
-    
   end
   
-  def has_n___association_name__(method_name, matches)
-                  
-    klass_eval do
-      
-      define_method method_name do |*args, &block|
-        
-        number_of_associated_objects, self.association_name = matches[2].to_i, matches[3]
-                
-        self.directives, self.options = split_arguments(args)
-        
-        assert_associations(:exist, :has_many)
-        
-        allocating_scheme = generate_allocating_scheme(number_of_associated_objects)
-        
-        delete_existing_associated_objects
-        
-        if insertion_using_import?                 
-          
-          create_associated_objects_by_import_using_allocating_schema allocating_scheme, self.options[:data], &block
-          
-        else                   
-          
-          create_associated_objects_by_factory_girl_using_allocating_schema allocating_scheme, self.options[:data], &block
-          
-        end  
-              
-        return_self? ? self : newly_created_associated_objects(number_of_associated_objects)
-        
-      end
-      
-    end
-    
-  end  
-       
   def each_has_n___association_name__(method_name, matches)
                   
     klass_eval do
             
       define_method method_name do |*args, &block|
+        
+        self.directives, self.options = split_arguments(args)
                       
-        number_of_associated_objects, self.association_name = matches[1].to_i,  matches[2]
+        number_of_associated_objects, self.association_name = matches[1].to_i,  matches[2]      
         
         assert_associations(:exist, :has_many)
         
-        self.directives, self.options = split_arguments(args)
+        assert_directives([:assoc, :girl, :skip_validation])
+        
                                       
         delete_existing_associated_objects
         
@@ -261,20 +201,92 @@ class Array
     
   end
   
-  def generate_allocating_scheme(number_of_allocated_objects, number_of_receiving_objects = nil)
-    
-    number_of_receiving_objects = self.count if number_of_receiving_objects.nil?
-    
-    allocating_scheme = [number_of_allocated_objects/number_of_receiving_objects]*number_of_receiving_objects
+  def has_n___association_name__(method_name, matches)
+                  
+    klass_eval do
+      
+      define_method method_name do |*args, &block|
+        
+        self.directives, self.options = split_arguments(args)
+        
+        number_of_associated_objects, self.association_name = matches[2].to_i, matches[3]
+                              
+        assert_associations(:exist, :has_many)
+        
+        assert_directives([:assoc, :girl, :skip_validation])
+        
+        
+        delete_existing_associated_objects
+        
+        allocating_scheme = generate_allocating_scheme(number_of_associated_objects)
+                    
+        if insertion_using_import?                 
           
-    ( number_of_allocated_objects - (number_of_allocated_objects/number_of_receiving_objects)*number_of_receiving_objects ).times do
-      allocating_scheme[rand(number_of_receiving_objects)] += 1
+          create_associated_objects_by_import_using_allocating_schema allocating_scheme, self.options[:data], &block
+          
+        else                   
+          
+          create_associated_objects_by_factory_girl_using_allocating_schema allocating_scheme, self.options[:data], &block
+          
+        end  
+              
+        return_self? ? self : newly_created_associated_objects(number_of_associated_objects)
+        
+      end
+      
     end
     
-    allocating_scheme
-    
   end  
+         
+  def random_update_n___association_name__(method_name, matches)            
+    
+    klass_eval do
+    
+      define_method method_name do |attributes, *args, &block|
+                      
+        self.directives, self.options = split_arguments(args)
+        
+        self.association_name = matches[2]
+        
+        number_of_updated_associated_objects = matches[1].to_i
+        
+        assert_types(attributes, [Hash])
+        
+        assert_associations(:exist, :has_many)
+        
+        assert_directives([:assoc])
+        
+        
+        updated_associte_objects = []
+        
+        self.each do |item|
+                    
+          item.send("#{self.association_name}").sample(number_of_updated_associated_objects).each do |updated_object|
+            
+            updated_object.attributes = attributes
+            
+            if ! block.nil?
+              block.call(item, updated_object)
+              item.save!(:validate => false) if item.changed?              
+            end
+            
+            updated_object.save!(:validate => false)
+                                            
+            updated_associte_objects.push(updated_object)
+            
+          end
+          
+        end
+              
+        return_self? ? self : updated_associte_objects
+                                                                  
+      end
+    
+    end
+    
+  end
   
+      
   def create_associated_objects_by_import_using_allocating_schema(allocating_scheme, data, &block)
     
     data = data || []
@@ -291,7 +303,7 @@ class Array
         
         if !block.nil?
            block.call(object, attributes)
-           object.save! if object.changed?
+           object.save!(:validate => false) if object.changed?
         end
         
         attributes[:"#{association_foreign_key}"] = object.id
@@ -322,7 +334,7 @@ class Array
         
         if !block.nil?
            block.call(object, attributes)
-           object.save! if object.changed?
+           object.save!(:validate => false) if object.changed?
         end
         
         FactoryGirl.create(*prepend_values_to_factory(attributes.merge(association_foreign_key.to_sym => object.id)))
@@ -347,7 +359,7 @@ class Array
         
         if !block.nil?
            block.call(object, attributes)
-           object.save! if object.changed?
+           object.save!(:validate => false) if object.changed?
         end
         
         attributes[:"#{association_foreign_key}"] = object.id
@@ -372,7 +384,7 @@ class Array
         
         if !block.nil?
            block.call(object, attributes)
-           object.save! if object.changed?
+           object.save!(:validate => false) if object.changed?
         end
         
         FactoryGirl.create(*prepend_values_to_factory(attributes.merge(association_foreign_key.to_sym => object.id)))
@@ -381,7 +393,21 @@ class Array
       
     end
     
-  end      
+  end
+  
+  def generate_allocating_scheme(number_of_allocated_objects, number_of_receiving_objects = nil)
+    
+    number_of_receiving_objects = self.count if number_of_receiving_objects.nil?
+    
+    allocating_scheme = [number_of_allocated_objects/number_of_receiving_objects]*number_of_receiving_objects
+          
+    ( number_of_allocated_objects - (number_of_allocated_objects/number_of_receiving_objects)*number_of_receiving_objects ).times do
+      allocating_scheme[rand(number_of_receiving_objects)] += 1
+    end
+    
+    allocating_scheme
+    
+  end 
   
   def newly_created_associated_objects(number_of_associated_objects = -1)
     associated_objects = associated_class
@@ -440,5 +466,18 @@ class Array
     raise DbContext::BelongsToAssociationExpected, "A belongs_to association is expected. :#{self.association_name} is not a belongs_to association, it is a #{reflection.macro} association" if reflection.macro != :belongs_to
   end
   
+  def assert_types(object, types, expectation_message = nil)
+    expectation_message = "#{types.join(' or ')} is expected" if expectation_message.nil?
+    raise TypeError, "#{expectation_message}. Received #{object.class.name}: #{object.inspect} " if ! types.any?{|type| object.is_a?(type) }
+  end
   
+  def assert_directives(allowed_directives)
+    invalid_directives = self.directives - allowed_directives
+    if invalid_directives.any?
+      error_message = "Unrecognizable #{"directive".pluralize(invalid_directives.count)} received: (#{invalid_directives.map{|directive| directive.inspect}.join(',')})"
+      error_message += "\nRecognizable #{"directive".pluralize(allowed_directives.count)}: (#{allowed_directives.map{|directive| directive.inspect}.join(',')})"
+      raise DbContext::InvalidDirective, error_message
+    end
+  end
+    
 end

@@ -56,11 +56,7 @@ describe ActiveRecord::Base do
         @children_data.each{|item| item[:gender] = 'neutral'}
         @father.has_foster_children @children_data, insertion_method, :factory => [:child, :male, gender: 'female']
         @father.foster_children.map(&:gender).uniq.should eq ['neutral']
-      end
-      
-      it 'raises error if factory is not an Array, String or Symbol' do        
-        expect{@father.has_foster_children(@children_data, insertion_method, factory: {})}.to raise_exception(DbContext::InvalidFactoryType)
-      end
+      end          
       
       it 'returns caller by default' do
         @father.has_children( @children_data, insertion_method ).should be @father      
@@ -70,6 +66,14 @@ describe ActiveRecord::Base do
         returned = @father.has_children( @children_data, insertion_method, :assoc)
         returned.count.should be @children_data.count
         returned.each{|item| item.class.should be Child }
+      end
+      
+      it 'raises error if factory is not an Array, String or Symbol' do        
+        expect{@father.has_foster_children(@children_data, insertion_method, factory: {})}.to raise_exception(DbContext::InvalidFactoryType)
+      end
+      
+      it 'does not raise exception if an emty array is passed' do
+        expect{@father.has_children([])}.not_to raise_exception
       end
     
     end
@@ -131,7 +135,7 @@ describe ActiveRecord::Base do
       @child = FactoryGirl.create :child      
     end
     
-    it 'assigns the associate object to the caller' do
+    it 'assigns the associated object to the caller' do
       @child.belongs_to @father
       @child.reload.father.id.should == @father.id
     end
@@ -145,7 +149,7 @@ describe ActiveRecord::Base do
       @child.belongs_to(@father).should be @child
     end
     
-    it 'returns the associate object with :assoc directive' do
+    it 'returns the associated object with :assoc directive' do
       @child.belongs_to(@father, :assoc).should be @father
     end
     

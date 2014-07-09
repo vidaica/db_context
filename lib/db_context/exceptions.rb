@@ -17,5 +17,8 @@ module DbContext
   
   class BelongsToAssociationExpected < Exception
   end
+  
+  class InvalidDirective < Exception
+  end
 
 end
