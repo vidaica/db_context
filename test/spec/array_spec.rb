@@ -475,6 +475,10 @@ describe Array do
     it 'raises exception if invalid directives are used' do      
       expect{ @fathers.each_has_3_children(:fake) }.to raise_exception(DbContext::InvalidDirective)
     end
+    
+    it 'raises exception if :girl and :skip_validation directives are used together' do     
+      expect{ @fathers.each_has_3_children(:girl, :skip_validation) }.to raise_exception(DbContext::ConflictDirectives)
+    end
                      
   end
   
@@ -589,7 +593,7 @@ describe Array do
       
       it 'returns array of associated objects if with :assoc directive' do      
         assert_array_of_children @fathers.has_3_children(insertion_method, :assoc), 3      
-      end
+      end        
     
     end
   
@@ -633,6 +637,10 @@ describe Array do
     
     it 'raises exception if invalid directives are used' do      
       expect{ @fathers.has_3_children :fake }.to raise_exception(DbContext::InvalidDirective)
+    end
+    
+    it 'raises exception if :girl and :skip_validation directives are used together' do      
+      expect{ @fathers.has_3_children(:girl, :skip_validation) }.to raise_exception(DbContext::ConflictDirectives)
     end
     
   end

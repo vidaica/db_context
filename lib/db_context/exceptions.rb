@@ -20,5 +20,8 @@ module DbContext
   
   class InvalidDirective < Exception
   end
+  
+  class ConflictDirectives < Exception
+  end
 
 end

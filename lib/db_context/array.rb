@@ -180,6 +180,8 @@ class Array
         
         assert_directives([:assoc, :girl, :skip_validation])
         
+        assert_no_conflict_directives([[:girl, :skip_validation]])
+        
                                       
         delete_existing_associated_objects
         
@@ -214,6 +216,8 @@ class Array
         assert_associations(:exist, :has_many)
         
         assert_directives([:assoc, :girl, :skip_validation])
+        
+        assert_no_conflict_directives([[:girl, :skip_validation]])
         
         
         delete_existing_associated_objects
@@ -477,6 +481,14 @@ class Array
       error_message = "Unrecognizable #{"directive".pluralize(invalid_directives.count)} received: (#{invalid_directives.map{|directive| directive.inspect}.join(',')})"
       error_message += "\nRecognizable #{"directive".pluralize(allowed_directives.count)}: (#{allowed_directives.map{|directive| directive.inspect}.join(',')})"
       raise DbContext::InvalidDirective, error_message
+    end
+  end
+  
+  def assert_no_conflict_directives(conflict_pairs)
+    conflict_pairs.each do |pair|
+      if (self.directives & pair) == pair
+        raise DbContext::ConflictDirectives, "#{ pair.map{|directive| directive.inspect}.join(' and ') } directives can't be used together."
+      end
     end
   end
     
