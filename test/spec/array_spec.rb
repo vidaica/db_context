@@ -421,8 +421,8 @@ describe Array do
         @fathers.each_has_3_children(insertion_method).should be @fathers      
       end
       
-      it 'returns array of associated objects with :assoc directive' do      
-        assert_array_of_children @fathers.each_has_3_children(insertion_method, :assoc), 3*@fathers.size      
+      it 'returns array of associated objects with :assoc directive' do              
+        assert_array_of(@fathers.each_has_3_children(insertion_method, :assoc), 3*@fathers.size, Child)
       end
       
       it 'does not cause associated objects getting cached' do      
@@ -592,7 +592,7 @@ describe Array do
       end
       
       it 'returns array of associated objects if with :assoc directive' do      
-        assert_array_of_children @fathers.has_3_children(insertion_method, :assoc), 3      
+        assert_array_of @fathers.has_3_children(insertion_method, :assoc), 3, Child
       end        
     
     end
@@ -726,7 +726,7 @@ describe Array do
     
     it 'returns updated associated objects with :assoc directive' do      
       result = @fathers.random_update_2_children({:name => 'updated_name'}, :assoc)
-      assert_array_of_children(result, 2*@fathers.count)
+      assert_array_of(result, 2*@fathers.count, Child)
       result.map(&:id).sort.should eq @fathers.map{|father| father.children.where(:name => 'updated_name').map(&:id) }.flatten.sort
     end
     
@@ -746,13 +746,6 @@ describe Array do
       expect{ @fathers.random_update_2_children({:name => 'updated_name'}, :fake) }.to raise_exception(DbContext::InvalidDirective)
     end
     
-  end  
-          
-  def assert_array_of_children(arr, item_count)
-    arr.count.should be item_count
-    arr.each do |item|
-      item.class.should be Child
-    end
-  end
+  end            
       
 end  

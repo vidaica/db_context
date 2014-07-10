@@ -209,6 +209,8 @@ class Array
       
       define_method method_name do |*args, &block|
         
+        #puts args.inspect
+        
         self.directives, self.options = split_arguments(args)
         
         number_of_associated_objects, self.association_name = matches[2].to_i, matches[3]
