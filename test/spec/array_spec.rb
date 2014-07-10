@@ -421,8 +421,8 @@ describe Array do
         @fathers.each_has_3_children(insertion_method).should be @fathers      
       end
       
-      it 'returns array of associated objects with :assoc directive' do              
-        assert_array_of(@fathers.each_has_3_children(insertion_method, :assoc), 3*@fathers.size, Child)
+      it 'returns array of associated objects with :assoc directive' do                     
+        @fathers.each_has_3_children(insertion_method, :assoc).should be_an_array_of(Child).with(3*@fathers.size).items
       end
       
       it 'does not cause associated objects getting cached' do      
@@ -591,8 +591,8 @@ describe Array do
         @fathers.has_3_children(insertion_method).should be @fathers      
       end
       
-      it 'returns array of associated objects if with :assoc directive' do      
-        assert_array_of @fathers.has_3_children(insertion_method, :assoc), 3, Child
+      it 'returns array of associated objects if with :assoc directive' do
+        @fathers.has_3_children(insertion_method, :assoc).should be_an_array_of(Child).with(3).items        
       end        
     
     end
@@ -725,8 +725,8 @@ describe Array do
     end
     
     it 'returns updated associated objects with :assoc directive' do      
-      result = @fathers.random_update_2_children({:name => 'updated_name'}, :assoc)
-      assert_array_of(result, 2*@fathers.count, Child)
+      result = @fathers.random_update_2_children({:name => 'updated_name'}, :assoc)     
+      result.should be_an_array_of(Child).with(2*@fathers.count).items
       result.map(&:id).sort.should eq @fathers.map{|father| father.children.where(:name => 'updated_name').map(&:id) }.flatten.sort
     end
     

@@ -149,8 +149,7 @@ describe ActiveRecord::Base do
     end
     
     it 'returns newly created associated objects with :assoc directive' do    
-      result = @father.has_3_children(:assoc)
-      assert_array_of(result, 3, Child)      
+      @father.has_3_children(:assoc).should be_an_array_of(Child).with(3).items      
     end
     
   end
@@ -193,8 +192,7 @@ describe ActiveRecord::Base do
     end
     
     it 'returns newly created associated objects with :assoc directive' do    
-      result = @father.has_children(@children_data, :assoc)
-      assert_array_of(result, 3, Child)     
+      @father.has_children(@children_data, :assoc).should be_an_array_of(Child).with(3).items     
     end
     
   end
@@ -230,7 +228,7 @@ describe ActiveRecord::Base do
     
     it 'returns updated associated objects with :assoc directive' do      
       result = @father.random_update_2_children({:name => 'updated_name'}, :assoc)
-      assert_array_of(result, 2, Child)
+      result.should be_an_array_of(Child).with(2).items
       result.map(&:id).sort.should eq @father.children.where(:name => 'updated_name').map(&:id).sort
     end
     
