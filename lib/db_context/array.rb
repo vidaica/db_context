@@ -6,8 +6,8 @@ class Array
               
     definers = {
       /^belongs?_to(_[0-9a-zA-Z_]+)?$/              => 'belong_to___association_name__',
-      /^make_([0-9a-zA-Z_]+)$/                      => 'make___association_name__',
-      /^add_([0-9a-zA-Z_]+)$/                       => 'add___association_name__',
+      /^makes?_([0-9a-zA-Z_]+)$/                    => 'make___association_name__',
+      /^adds?_([0-9a-zA-Z_]+)$/                     => 'add___association_name__',
       /^each_has_(\d+)_([0-9a-zA-Z_]+)$/            => 'each_has_n___association_name__',
       /^(has|have)_(\d+)_([0-9a-zA-Z_]+)$/          => 'has_n___association_name__',
       /^random_update_(\d+)_([0-9a-zA-Z_]+)$/       => 'random_update_n___association_name__'
