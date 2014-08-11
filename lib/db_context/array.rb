@@ -40,50 +40,52 @@ class Array
     
   end
   
-  private
-  
+  private  
+    
   def belong_to___association_name__(method_name, matches)
     
     klass_eval do
       
       define_method method_name do |associated_objects, *args, &block|            
-                                    
-        self.directives, self.options = split_arguments(args)              
+                                            
+        after_method_preperation(*args, associated_objects) do
         
-        self.association_name = ( ! matches[1].nil? ? matches[1].sub(/^_/,'') : associated_objects.first.class.name.downcase ).singularize
-        
-        assert_types(associated_objects, [Array, ActiveRecord::Base], "An array or an activerecord object is expected")
-        
-        assert_associations(:exist, :belongs_to)
-        
-        assert_directives([:assoc])
-        
-        associated_objects = [associated_objects] if associated_objects.is_a?(ActiveRecord::Base)
-        
-        return if associated_objects.empty?
-        
-                                  
-        allocating_scheme = generate_allocating_scheme(self.count, associated_objects.count)
-        
-        indexes = (0...self.count).to_a
-        
-        associated_objects.zip(allocating_scheme).each do |associated_object, number_of_items|
-               
-          indexes.shift(number_of_items).each do |index|
+          self.association_name = ( ! matches[1].nil? ? matches[1].sub(/^_/,'') : associated_objects.first.class.name.downcase ).singularize              
+                                        
+          assert_types(associated_objects, [Array, ActiveRecord::Base], "An array or an activerecord object is expected")
+          
+          assert_associations(:exist, :belongs_to)
+          
+          assert_directives([:assoc])
+          
+          associated_objects_array = Array(associated_objects)
+                  
+          return result(associated_objects) if associated_objects_array.empty?
+          
+                                                
+          allocating_scheme = generate_allocating_scheme(self.count, associated_objects_array.count)
+          
+          indexes = (0...self.count).to_a
+          
+          associated_objects_array.zip(allocating_scheme).each do |associated_object, number_of_items|
+                 
+            indexes.shift(number_of_items).each do |index|
+                
+              if ! block.nil?
+                block.call(self[index], associated_object)
+                associated_object.save!(:validate => false) if associated_object.changed?
+              end
               
-            if ! block.nil?
-              block.call(self[index], associated_object)
-              associated_object.save!(:validate => false) if associated_object.changed?
+              self[index].send("#{self.association_name}=", associated_object)
+              self[index].save!(:validate => false)
+              
             end
             
-            self[index].send("#{self.association_name}=", associated_object)
-            self[index].save!(:validate => false)
-            
           end
+              
+          result(associated_objects)
           
         end
-            
-        return_self? ? self : associated_objects
                       
       end
       
@@ -97,24 +99,27 @@ class Array
       
       define_method method_name do |*args, &block|
         
-        self.directives, self.options = split_arguments(args)
+        after_method_preperation(*args, []) do
         
-        self.association_name = matches[1].singularize
-        
-        assert_associations(:exist, :belongs_to)
-        
-        assert_directives([:assoc])
-       
-        self.each do |item|
+          self.association_name = matches[1].singularize            
           
-          attributes = FactoryGirl.attributes_for(*factory)
-          block.call(item, attributes) if !block.nil?          
-          item.send("#{self.association_name}=", FactoryGirl.create(*prepend_values_to_factory(attributes)))
-          item.save!(:validate => false)
+          assert_associations(:exist, :belongs_to)
+          
+          assert_directives([:assoc])
+          
+         
+          self.each do |item|
+            
+            attributes = FactoryGirl.attributes_for(*factory)
+            block.call(item, attributes) if !block.nil?          
+            item.send("#{self.association_name}=", FactoryGirl.create(*prepend_values_to_factory(attributes)))
+            item.save!(:validate => false)
+            
+          end
+          
+          result(self.map{|item| item.send("#{self.association_name}")})
           
         end
-        
-        return_self? ? self : self.map{|item| item.send("#{self.association_name}")}
         
       end
       
@@ -127,38 +132,41 @@ class Array
     klass_eval do
       
       define_method method_name do |associated_objects, *args, &block|
-                      
-        self.directives, self.options = split_arguments(args)
+                              
+        after_method_preperation(*args, associated_objects) do
           
-        self.association_name = matches[1]
-        
-        assert_types(associated_objects, [Array])
-        
-        assert_associations(:exist, :has_many)
-        
-        assert_directives([:assoc])
-        
-        allocating_scheme = generate_allocating_scheme(associated_objects.count, self.count)
-        
-        indexes = (0...associated_objects.count).to_a
-        
-        self.zip(allocating_scheme).each do |item, number_of_associated_objects|
-               
-          indexes.shift(number_of_associated_objects).each do |index|
+          self.association_name = matches[1]              
+          
+          assert_types(associated_objects, [Array])              
+          
+          assert_associations(:exist, :has_many)
+          
+          assert_directives([:assoc])
+          
+          
+          allocating_scheme = generate_allocating_scheme(associated_objects.count, self.count)
+          
+          indexes = (0...associated_objects.count).to_a
+          
+          self.zip(allocating_scheme).each do |item, number_of_associated_objects|
+                 
+            indexes.shift(number_of_associated_objects).each do |index|
+              
+              if ! block.nil?
+                block.call(item, associated_objects[index])
+                item.save!(:validate=>false) if item.changed?
+              end
+              
+              associated_objects[index].send("#{association_foreign_key}=", item.id)
+              associated_objects[index].save!(:validate=>false)
+              
+            end    
             
-            if ! block.nil?
-              block.call(item, associated_objects[index])
-              item.save!(:validate=>false) if item.changed?
-            end
-            
-            associated_objects[index].send("#{association_foreign_key}=", item.id)
-            associated_objects[index].save!(:validate=>false)
-            
-          end    
+          end
+                  
+          result(associated_objects)
           
         end
-                
-        return_self? ? self : associated_objects
         
       end
       
@@ -172,30 +180,32 @@ class Array
             
       define_method method_name do |*args, &block|
         
-        self.directives, self.options = split_arguments(args)
+        after_method_preperation(*args, []) do
                       
-        number_of_associated_objects, self.association_name = matches[1].to_i,  matches[2]      
-        
-        assert_associations(:exist, :has_many)
-        
-        assert_directives([:assoc, :girl, :skip_validation])
-        
-        assert_no_conflict_directives([[:girl, :skip_validation]])
-        
-                                      
-        delete_existing_associated_objects
-        
-        if insertion_using_import?
+          number_of_associated_objects, self.association_name = matches[1].to_i,  matches[2]      
           
-          create_associated_objects_for_each_item_by_import(number_of_associated_objects, &block)
-                                 
-        else
+          assert_associations(:exist, :has_many)
           
-          create_associated_objects_for_each_item_by_factory_girl(number_of_associated_objects, &block)  
-                            
+          assert_directives([:assoc, :girl, :skip_validation])
+          
+          assert_no_conflict_directives([[:girl, :skip_validation]])
+          
+                                        
+          delete_existing_associated_objects
+          
+          if insertion_using_import?
+            
+            create_associated_objects_for_each_item_by_import(number_of_associated_objects, &block)
+                                   
+          else
+            
+            create_associated_objects_for_each_item_by_factory_girl(number_of_associated_objects, &block)  
+                              
+          end
+                         
+          result newly_created_associated_objects
+          
         end
-                       
-        return_self? ? self : newly_created_associated_objects
                 
       end
       
@@ -209,32 +219,34 @@ class Array
       
       define_method method_name do |*args, &block|
                 
-        self.directives, self.options = split_arguments(args)
+        after_method_preperation(*args, []) do
         
-        number_of_associated_objects, self.association_name = matches[2].to_i, matches[3]
-                              
-        assert_associations(:exist, :has_many)
-        
-        assert_directives([:assoc, :girl, :skip_validation])
-        
-        assert_no_conflict_directives([[:girl, :skip_validation]])
-        
-        
-        delete_existing_associated_objects
-        
-        allocating_scheme = generate_allocating_scheme(number_of_associated_objects)
-                    
-        if insertion_using_import?                 
+          number_of_associated_objects, self.association_name = matches[2].to_i, matches[3]              
+                                
+          assert_associations(:exist, :has_many)
           
-          create_associated_objects_by_import_using_allocating_schema allocating_scheme, self.options[:data], &block
+          assert_directives([:assoc, :girl, :skip_validation])
           
-        else                   
+          assert_no_conflict_directives([[:girl, :skip_validation]])
           
-          create_associated_objects_by_factory_girl_using_allocating_schema allocating_scheme, self.options[:data], &block
           
-        end  
-              
-        return_self? ? self : newly_created_associated_objects(number_of_associated_objects)
+          delete_existing_associated_objects
+          
+          allocating_scheme = generate_allocating_scheme(number_of_associated_objects)
+                      
+          if insertion_using_import?                 
+            
+            create_associated_objects_by_import_using_allocating_schema allocating_scheme, self.options[:data], &block
+            
+          else                   
+            
+            create_associated_objects_by_factory_girl_using_allocating_schema allocating_scheme, self.options[:data], &block
+            
+          end  
+                
+          result newly_created_associated_objects(number_of_associated_objects)
+          
+        end
         
       end
       
@@ -248,41 +260,43 @@ class Array
     
       define_method method_name do |attributes, *args, &block|
                       
-        self.directives, self.options = split_arguments(args)
+        after_method_preperation(*args, []) do
         
-        self.association_name = matches[2]
-        
-        number_of_updated_associated_objects = matches[1].to_i
-        
-        assert_types(attributes, [Hash])
-        
-        assert_associations(:exist, :has_many)
-        
-        assert_directives([:assoc])
-        
-        
-        updated_associte_objects = []
-        
-        self.each do |item|
-                    
-          item.send("#{self.association_name}").sample(number_of_updated_associated_objects).each do |updated_object|
-            
-            updated_object.attributes = attributes
-            
-            if ! block.nil?
-              block.call(item, updated_object)
-              item.save!(:validate => false) if item.changed?              
+          self.association_name = matches[2]              
+          
+          number_of_updated_associated_objects = matches[1].to_i
+          
+          assert_types(attributes, [Hash])
+          
+          assert_associations(:exist, :has_many)
+          
+          assert_directives([:assoc])
+          
+          
+          updated_associte_objects = []
+          
+          self.each do |item|
+                      
+            item.send("#{self.association_name}").sample(number_of_updated_associated_objects).each do |updated_object|
+              
+              updated_object.attributes = attributes
+              
+              if ! block.nil?
+                block.call(item, updated_object)
+                item.save!(:validate => false) if item.changed?              
+              end
+              
+              updated_object.save!(:validate => false)
+                                              
+              updated_associte_objects.push(updated_object)
+              
             end
             
-            updated_object.save!(:validate => false)
-                                            
-            updated_associte_objects.push(updated_object)
-            
           end
+                
+          result updated_associte_objects
           
         end
-              
-        return_self? ? self : updated_associte_objects
                                                                   
       end
     
@@ -490,6 +504,22 @@ class Array
         raise DbContext::ConflictDirectives, "#{ pair.map{|directive| directive.inspect}.join(' and ') } directives can't be used together."
       end
     end
+  end
+  
+  def result(associated_objects)
+    return_self? ? self : associated_objects
+  end
+  
+  def after_method_preperation(*args, associated_objects_to_return_if_empty)
+    
+    self.directives, self.options = split_arguments(args)
+    
+    if self.empty?
+      result(associated_objects_to_return_if_empty)
+    else
+      yield
+    end
+    
   end
     
 end

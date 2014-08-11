@@ -58,6 +58,11 @@ describe Array do
     it 'raises exception if attributes argument is not a hash' do     
       expect{ @fathers.serial_update([]) }.to raise_exception(TypeError)      
     end
+        
+    it 'does nothing if the method is called on an emty array' do
+      @fathers = []
+      @fathers.serial_update(:number => [0,1,2,3]).should be @fathers
+    end
     
   end    
    
@@ -136,12 +141,22 @@ describe Array do
     end
     
     it 'returns associated objects with :assoc directive' do
+      @father = @fathers.first
+      @children.belong_to_fathers(@fathers, :assoc).should be @fathers
+      @children.belong_to_fathers(@father, :assoc).should be @father
+    end
+    
+    it 'does nothing if an empty array is passed' do
+      @fathers = []
+      @children.belong_to_fathers(@fathers).should be @children
       @children.belong_to_fathers(@fathers, :assoc).should be @fathers
     end
     
-    it 'does not raise exceptions if an empty array is passed' do
-      expect{@children.belong_to_fathers []}.not_to raise_exception
-    end      
+    it 'does nothing if the method is called on an emty array' do
+      @children = []
+      @children.belong_to_fathers(@fathers).should be @children
+      @children.belong_to_fathers(@fathers, :assoc).should be @fathers
+    end
     
     it 'raises exception if an association cannot be extracted from the method name' do
       expect{@children.belong_to_fake_associations(@fathers)}.to raise_exception(DbContext::NonExistentAssociation)
@@ -157,7 +172,7 @@ describe Array do
     
     it 'raises exception if invalid directives are used' do      
       expect{ @children.belong_to_fathers(@fathers, :fake) }.to raise_exception(DbContext::InvalidDirective)
-    end
+    end      
                      
   end
   
@@ -241,6 +256,12 @@ describe Array do
       @children.make_father  
     end
     
+    it 'does nothing if the method is called on an emty array' do
+      @children = []
+      @children.make_father.should be @children
+      @children.make_father(:assoc).should eq []
+    end
+    
     it 'raises exception if an association cannot be extracted from the method name' do
       expect{@children.make_fake_association}.to raise_exception(DbContext::NonExistentAssociation)
     end
@@ -310,6 +331,12 @@ describe Array do
       @fathers.map(&:name).uniq.should eq ['']
       @fathers.map{ |father| father.children.map(&:name) }.flatten.uniq.should eq ['']
                     
+    end
+    
+    it 'does nothing if the method is called on an emty array' do
+      @fathers = []
+      @fathers.add_children(@children).should be @fathers
+      @fathers.add_children(@children, :assoc).should be @children
     end
        
     it 'returns the caller by default' do
@@ -415,6 +442,12 @@ describe Array do
         @another_father.children << FactoryGirl.build(:child)
         @fathers.has_3_children insertion_method
         @another_father.children.count.should be 1      
+      end
+      
+      it 'does nothing if the method is called on an emty array' do
+        @fathers = []
+        @fathers.each_has_3_children.should be @fathers
+        @fathers.each_has_3_children(:assoc).should eq []
       end
                      
       it 'returns caller by defaut' do      
@@ -587,6 +620,12 @@ describe Array do
         
       end
       
+      it 'does nothing if the method is called on an emty array' do
+        @fathers = []
+        @fathers.has_5_children(insertion_method).should be @fathers
+        @fathers.has_5_children(insertion_method, :assoc).should eq []
+      end
+      
       it 'returns caller by default' do      
         @fathers.has_3_children(insertion_method).should be @fathers      
       end
@@ -728,6 +767,12 @@ describe Array do
       result = @fathers.random_update_2_children({:name => 'updated_name'}, :assoc)     
       result.should be_an_array_of(Child).with(2*@fathers.count).items
       result.map(&:id).sort.should eq @fathers.map{|father| father.children.where(:name => 'updated_name').map(&:id) }.flatten.sort
+    end
+    
+    it 'does nothing if the method is called on an emty array' do
+      @fathers = []
+      @fathers.random_update_1_children(:name => 'updated_name').should be @fathers
+      @fathers.random_update_1_children({:name => 'updated_name'}, :assoc).should eq []
     end
     
     it 'raises an exception if an association cannot be extracted from the method name' do

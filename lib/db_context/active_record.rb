@@ -20,96 +20,36 @@ class ActiveRecord::Base
   private
   
   def belongs_to___association_name__(method_name, matches)
-    
-    klass_eval do
         
-      define_method method_name do |*args, &block|
-               
-        self.directives, self.options = split_arguments(args)
-        
-        args[0] = [args[0]]
-        
-        result = [self].send(method_name,*args, &block)
-                
-        return_self? ? self : result.first
-        
-      end
-      
+    _delegate_method_to_array(method_name, true) do |args|
+      args[0] = [args[0]]      
     end
     
   end
   
   def makes___association_name__(method_name, matches)
-    
-    klass_eval do
-      
-      define_method method_name do |*args, &block|
-                  
-        self.directives, self.options = split_arguments(args)          
-         
-        result = [self].send(method_name,*args, &block)
-                 
-        return_self? ? self : result.first
-       
-      end
-     
-    end
+        
+    _delegate_method_to_array(method_name, true)
     
   end
   
   def add___association_name__(method_name, matches)
-    
-    klass_eval do
-      
-      define_method method_name do |*args, &block|
-                  
-        self.directives, self.options = split_arguments(args)
-                
-        result = [self].send(method_name,*args, &block)
-                
-        return_self? ? self : result
-       
-      end
-     
-    end
+        
+    _delegate_method_to_array(method_name)
     
   end
   
   def has_n___association_name__(method_name, matches)
-    
-    klass_eval do
-      
-      define_method method_name do |*args, &block|
-                  
-        self.directives, self.options = split_arguments(args)
-                
-        result = [self].send(method_name,*args, &block)
-                
-        return_self? ? self : result
-       
-      end
-     
-    end
+        
+    _delegate_method_to_array(method_name)
     
   end
   
   def random_update_n___association_name__(method_name, matches)
+        
+    _delegate_method_to_array(method_name)
     
-    klass_eval do
-      
-      define_method method_name do |*args, &block|
-                  
-        self.directives, self.options = split_arguments(args)
-                
-        result = [self].send(method_name,*args, &block)
-                
-        return_self? ? self : result
-       
-      end
-     
-    end
-    
-  end
+  end  
   
   def has___association_name__(method_name, matches)      
     
@@ -135,10 +75,26 @@ class ActiveRecord::Base
      
     end
     
-  end    
+  end
+  
+  def _delegate_method_to_array(method_name, return_first_assoc_elem = false)
+    
+    klass_eval do
       
-  def reflection()
-    self.class.reflections[self.association_name.to_sym]
+      define_method method_name do |*args, &block|
+                  
+        self.directives, self.options = split_arguments(args)
+        
+        yield(args) if block_given?
+        
+        result = [self].send(method_name,*args, &block)          
+        
+        return_self? ? self : ( return_first_assoc_elem ? result.first : result )
+       
+      end
+      
+    end
+    
   end
   
 end
