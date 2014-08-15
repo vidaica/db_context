@@ -7,8 +7,8 @@ Gem::Specification.new do |spec|
 
   spec.name          = "db_context"
   spec.version       = DbContext::VERSION
-  spec.authors       = ["Vi Dang"]
-  spec.email         = ["dangquocvi@gmail.com"]
+  spec.authors       = ["Vi Dang", "Khanh Nguyen"]
+  spec.email         = ["dangquocvi@gmail.com", "nguyenvietnamkhanh@gmail.com"]
   spec.description   = "Help you easier to create db context"
   spec.summary       = "Help you easier to create db context"
   spec.homepage      = ""
