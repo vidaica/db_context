@@ -22,7 +22,8 @@ class ActiveRecord::Base
   def belongs_to___association_name__(method_name, matches)
         
     _delegate_method_to_array(method_name, true) do |args|
-      args[0] = [args[0]]      
+      args[0] = [args[0]]
+      [args]
     end
     
   end
@@ -52,32 +53,24 @@ class ActiveRecord::Base
   end  
   
   def has___association_name__(method_name, matches)      
-    
-    klass_eval do
+        
+    _delegate_method_to_array(method_name) do |args|
       
-      define_method method_name do |*args, &block|
-                  
-        self.directives, self.options = split_arguments(args)
-        
-        data = args.shift
-        
-        if args[-1].is_a?(Hash)
-           args[-1][:data] = data
-        else
-          args.push(:data => data)
-        end
-                
-        result = [self].send("has_#{data.count}_#{matches[1]}",*args, &block)
-                
-        return_self? ? self : result
-       
+      data = args.shift
+      
+      if args[-1].is_a?(Hash)
+         args[-1][:data] = data
+      else
+        args.push(:data => data)
       end
-     
+              
+      [args, "has_#{data.count}_#{matches[1]}"]
+    
     end
     
   end
   
-  def _delegate_method_to_array(method_name, return_first_assoc_elem = false)
+  def _delegate_method_to_array(method_name, return_first_assoc_object = false)
     
     klass_eval do
       
@@ -85,11 +78,13 @@ class ActiveRecord::Base
                   
         self.directives, self.options = split_arguments(args)
         
-        yield(args) if block_given?
+        args, target_method_name = yield(args) if block_given?
         
-        result = [self].send(method_name,*args, &block)          
+        target_method_name = target_method_name || method_name
+                    
+        result = [self].send(target_method_name,*args, &block)          
         
-        return_self? ? self : ( return_first_assoc_elem ? result.first : result )
+        return_self? ? self : ( return_first_assoc_object ? result.first : result )
        
       end
       

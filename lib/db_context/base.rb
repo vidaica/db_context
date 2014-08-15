@@ -10,6 +10,8 @@ module DbContext
       
     end
     
+    private
+    
     def define_missing_method(method_name, definers, *args, &block)
           
       definers.each do |method_patern, defining_method|
@@ -25,9 +27,7 @@ module DbContext
       
       method_missing_before_db_context(method_name, *args, &block)
       
-    end
-    
-    private
+    end      
     
     def import_activerecord_objects(klass, objects)
       

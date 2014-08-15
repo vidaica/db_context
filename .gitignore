@@ -16,3 +16,4 @@ test/version_tmp
 tmp
 db/log/
 *.komodoproject
+trash
