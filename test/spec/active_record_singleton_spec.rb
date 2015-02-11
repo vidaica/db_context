@@ -2,6 +2,30 @@ require File.join( File.dirname(__FILE__), '..', 'rspec_helper' )
 
 describe ActiveRecord::Base do
   
+  describe 'one method' do
+    
+    it 'delegates to ActiveRecord::create_n_instances' do
+      Father.should_receive(:create_1).with(:import, :skip_validation, :factory => [:another_father, :white, :complexion => 'black']).and_return([])
+      Father.one(:import, :skip_validation, :factory => [:another_father, :white, :complexion => 'black'])
+    end
+    
+    it 'returns the newly created instance' do
+      Father.one.should be_instance_of Father
+    end
+       
+    it 'uses factory_girl for database insertion by default' do
+      Father.should_receive(:create_instances_by_factory_girl).and_return([])
+      Father.one
+    end
+    
+    it 'uses activerecord_import for database insertion with :import directive' do
+      Father.should_receive(:create_instances_by_import).and_return([])
+      Father.one :import
+    end
+    
+  end
+  
+  
   describe 'has method' do
     
     before :each do      
@@ -140,28 +164,6 @@ describe ActiveRecord::Base do
            
   end 
     
-  describe 'one method' do
-    
-    it 'delegates to ActiveRecord::create_n_instances' do
-      Father.should_receive(:create_1).with(:import, :skip_validation, :factory => [:another_father, :white, :complexion => 'black']).and_return([])
-      Father.one(:import, :skip_validation, :factory => [:another_father, :white, :complexion => 'black'])
-    end
-    
-    it 'returns the newly created instance' do
-      Father.one.should be_instance_of Father
-    end
-       
-    it 'uses factory_girl for database insertion by default' do
-      Father.should_receive(:create_instances_by_factory_girl).and_return([])
-      Father.one
-    end
-    
-    it 'uses activerecord_import for database insertion with :import directive' do
-      Father.should_receive(:create_instances_by_import).and_return([])
-      Father.one :import
-    end
-    
-  end
   
   describe 'second, third, fourth, fifth, sixth, seventh, eighth, ninth, tenth methods' do
       

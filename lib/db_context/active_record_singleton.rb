@@ -23,11 +23,7 @@ class << ActiveRecord::Base
     self.create_1(*args).first
     
   end
-  
-  def a
-    self.all.to_a
-  end
-  
+    
   def serial_update(attributes)
     
     number_of_updated_objects = attributes.collect{ |attr, values| values.count }.max
@@ -57,6 +53,10 @@ class << ActiveRecord::Base
     end
     
   end
+  
+  def a
+    self.all.to_a
+  end  
   
   private
     
