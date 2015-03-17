@@ -101,7 +101,26 @@ Or install it yourself as:
     end
     
     # To return the associate objects instead of the caller, use :assoc directive
-    3.Posts.make_author(:assoc) # array of newly created authors will be returned    
+    3.Posts.make_author(:assoc) # array of newly created authors will be returned
+    
+####\#add_{association_name}(associate_objects, *directives, &block)
+    
+    3.Authors.add_posts(8.Posts) # 2 posts will be assigned to each author, 2 extra post will be allocated randomly
+    
+    # With a block
+    3.Authors.add_posts 7.Posts do |author, post|
+      author.last_name = 'Smith'        
+      post.description = "Writen by #{author.first_name}"        
+    end
+    
+    # When objects are saved to set up the association, validations are ignored
+    3.Authors.add_posts 7.Posts do |author, post|
+      author.last_name = '' # will not cause validation failure even if :last_name is required
+      post.description = '' # will not cause validation failure even if :description is required 
+    end
+        
+    # To return the associate objects instead of the caller, use :assoc directive
+    3.Authors.add_posts(7.Posts, :assoc) # the array of posts will be returned
 
 ## Contributing
 
