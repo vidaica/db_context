@@ -60,13 +60,13 @@ class << ActiveRecord::Base
   
   private
     
-  def singleton_class
+  def singleton_klass
     class << self; self; end
   end
   
   def second_to_tenth_methods(method_name, matches)
     
-    singleton_class.class_eval do
+    singleton_klass.class_eval do
       
       define_method method_name do
         
@@ -81,7 +81,7 @@ class << ActiveRecord::Base
          
   def create_n_instances(method_name, matches)
            
-    singleton_class.class_eval do
+    singleton_klass.class_eval do
       
       define_method method_name do |*args|
         
