@@ -50,7 +50,7 @@ class Array
                                             
         after_method_preperation(*args, associated_objects) do
         
-          self.association_name = ( ! matches[1].nil? ? matches[1].sub(/^_/,'') : associated_objects.first.class.name.downcase ).singularize              
+          self.association_name = ( ! matches[1].nil? ? matches[1].sub(/^_/,'') : associated_objects.first.class.name.underscore ).singularize
                                         
           assert_types(associated_objects, [Array, ActiveRecord::Base], "An array or an activerecord object is expected")
           
@@ -62,7 +62,6 @@ class Array
                   
           return result(associated_objects) if associated_objects_array.empty?
           
-                                                
           allocating_scheme = generate_allocating_scheme(self.count, associated_objects_array.count)
           
           indexes = (0...self.count).to_a
