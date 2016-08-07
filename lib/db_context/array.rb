@@ -439,7 +439,7 @@ class Array
   end          
   
   def reflection()
-    self.first.class.reflections[self.association_name.to_sym]
+    self.first.class.reflect_on_association(self.association_name.to_sym)
   end
   
   def normalize_attributes(serial_attributes, number_of_updated_objects)

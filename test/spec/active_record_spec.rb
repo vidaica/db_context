@@ -14,10 +14,10 @@ describe ActiveRecord::Base do
     
     it 'delegates to Array#belongs_to___association_name__' do
             
-      Array.any_instance.should_receive(:belongs_to).with([@father], :assoc).and_return([@father])
+      expect_any_instance_of(Array).to receive(:belongs_to).with([@father], :assoc).and_return([@father])
       @child.belongs_to(@father, :assoc)
       
-      Array.any_instance.should_receive(:belongs_to_father).with([@father], :assoc).and_return([@father])
+      expect_any_instance_of(Array).to receive(:belongs_to_father).with([@father], :assoc).and_return([@father])
       @child.belongs_to_father(@father, :assoc)
       
     end
@@ -29,19 +29,19 @@ describe ActiveRecord::Base do
         father.complexion = 'yellow'
       end
       
-      @child.reload.name.should eq "Child of #{@father.name}"
-      @father.reload.complexion.should eq 'yellow'
+      expect(@child.reload.name).to eq "Child of #{@father.name}"
+      expect(@father.reload.complexion).to eq 'yellow'
       
     end
     
      it 'returns caller by defaut' do     
-      @child.belongs_to(@father).should be @child
-      @child.belongs_to_father(@father).should be @child
+      expect(@child.belongs_to(@father)).to be @child
+      expect(@child.belongs_to_father(@father)).to be @child
     end
     
     it 'returns associated objects with :assoc directive' do      
-      @child.belongs_to(@father, :assoc).should be @father
-      @child.belongs_to_father(@father, :assoc).should be @father
+      expect(@child.belongs_to(@father, :assoc)).to be @father
+      expect(@child.belongs_to_father(@father, :assoc)).to be @father
     end
           
   end
@@ -54,7 +54,7 @@ describe ActiveRecord::Base do
     
     it 'delegates to Array#make___association_name__' do
             
-      Array.any_instance.should_receive(:makes_father).with(:assoc, :factory => [:father, :white]).and_return([])
+      expect_any_instance_of(Array).to receive(:makes_father).with(:assoc, :factory => [:father, :white]).and_return([])
       @child.makes_father(:assoc, :factory => [:father, :white])
      
     end
@@ -66,19 +66,19 @@ describe ActiveRecord::Base do
         father_attributes[:complexion] = 'yellow'
       end
       
-      @child.reload.name.should eq "Child of #{@child.father.name}"
-      @child.reload.father.complexion.should eq 'yellow'
+      expect(@child.reload.name).to eq "Child of #{@child.father.name}"
+      expect(@child.reload.father.complexion).to eq 'yellow'
       
     end
     
     it 'returns caller by defaut' do     
-      @child.makes_father.should be @child     
+      expect(@child.makes_father).to be @child     
     end
     
     it 'returns newly created associated object with :assoc directive' do
       result = @child.makes_father(:assoc)
-      result.is_a?(Father).should be true
-      result.id.should eq @child.father.id
+      expect(result.is_a?(Father)).to be true
+      expect(result.id).to eq @child.father.id
     end
     
   end
@@ -91,7 +91,7 @@ describe ActiveRecord::Base do
     
     it 'delegates to Array#adds___association_name__' do
             
-      Array.any_instance.should_receive(:adds_children).with([@child], :assoc).and_return([@child])
+      expect_any_instance_of(Array).to receive(:adds_children).with([@child], :assoc).and_return([@child])
       @father.adds_children([@child], :assoc)
            
     end
@@ -103,18 +103,18 @@ describe ActiveRecord::Base do
         child.name = "Child of #{father.name}"        
       end
       
-      @father.reload.complexion.should eq 'yellow'
-      @child.reload.name.should eq "Child of #{@father.name}"
+      expect(@father.reload.complexion).to eq 'yellow'
+      expect(@child.reload.name).to eq "Child of #{@father.name}"
             
     end
     
-     it 'returns caller by defaut' do     
-      @father.adds_children([@child]).should be @father     
+    it 'returns caller by defaut' do     
+      expect(@father.adds_children([@child])).to be @father     
     end
     
     it 'returns associated objects with :assoc directive' do
       @children = [@child]
-      @father.adds_children(@children, :assoc).should be @children
+      expect(@father.adds_children(@children, :assoc)).to be @children
     end
     
   end
@@ -127,7 +127,7 @@ describe ActiveRecord::Base do
     
     it 'delegates to Array#has_n___association_name__' do
             
-      Array.any_instance.should_receive(:has_3_children).with(:assoc, :skip_validation, :factory => [:child]).and_return([@child])
+      expect_any_instance_of(Array).to receive(:has_3_children).with(:assoc, :skip_validation, :factory => [:child]).and_return([@child])
       @father.has_3_children(:assoc, :skip_validation, :factory => [:child])
            
     end
@@ -139,17 +139,17 @@ describe ActiveRecord::Base do
         child_attributes[:name] = "Child of #{father.name}"
       end
       
-      @father.reload.complexion.should eq 'yellow'
-      @father.reload.children.map(&:name).uniq.should eq ["Child of #{@father.name}"]     
+      expect(@father.reload.complexion).to eq 'yellow'
+      expect(@father.reload.children.map(&:name).uniq).to eq ["Child of #{@father.name}"]     
             
     end
     
-     it 'returns caller by default' do     
-      @father.has_3_children.should be @father     
+    it 'returns caller by default' do     
+      expect(@father.has_3_children).to be @father     
     end
     
     it 'returns newly created associated objects with :assoc directive' do    
-      @father.has_3_children(:assoc).should be_an_array_of(Child).with(3).items      
+      expect(@father.has_3_children(:assoc)).to be_an_array_of(Child).with(3).items      
     end
     
   end
@@ -162,7 +162,7 @@ describe ActiveRecord::Base do
     
     it 'delegates to Array#has_n___association_name__' do
             
-      Array.any_instance.should_receive(:has_3_children)
+      expect_any_instance_of(Array).to receive(:has_3_children)
       .with(
             :assoc,
             :skip_validation,
@@ -182,17 +182,17 @@ describe ActiveRecord::Base do
         child_attributes[:name] = "Child of #{father.name}"
       end
       
-      @father.reload.complexion.should eq 'yellow'
-      @father.reload.children.map(&:name).uniq.should eq ["Child of #{@father.name}"]     
+      expect(@father.reload.complexion).to eq 'yellow'
+      expect(@father.reload.children.map(&:name).uniq).to eq ["Child of #{@father.name}"]     
             
     end
     
-     it 'returns caller by default' do     
-      @father.has_children(@children_data).should be @father
+    it 'returns caller by default' do     
+      expect(@father.has_children(@children_data)).to be @father
     end
     
     it 'returns newly created associated objects with :assoc directive' do    
-      @father.has_children(@children_data, :assoc).should be_an_array_of(Child).with(3).items     
+      expect(@father.has_children(@children_data, :assoc)).to be_an_array_of(Child).with(3).items     
     end
     
   end
@@ -204,7 +204,7 @@ describe ActiveRecord::Base do
     end
        
     it 'delegates to Array.random_update_n___association_name__' do      
-      Array.any_instance.should_receive(:random_update_3_children).with(name:'updated_name')
+      expect_any_instance_of(Array).to receive(:random_update_3_children).with(name:'updated_name')
       @father.random_update_3_children(name:'updated_name')
     end 
     
@@ -215,21 +215,21 @@ describe ActiveRecord::Base do
         updated_child.gender = "neutral"        
       end
                      
-      @father.reload.name.should eq 'Ben'  
+      expect(@father.reload.name).to eq 'Ben'  
       @father.children.each do |child|
-        child.reload.gender.should eq "neutral" if child.name == 'updated_name'
+        expect(child.reload.gender).to eq "neutral" if child.name == 'updated_name'
       end        
         
     end
     
     it 'returns caller by default' do
-      @father.random_update_2_children(name:'updated_name').should be @father
+      expect(@father.random_update_2_children(name:'updated_name')).to be @father
     end
     
     it 'returns updated associated objects with :assoc directive' do      
       result = @father.random_update_2_children({:name => 'updated_name'}, :assoc)
-      result.should be_an_array_of(Child).with(2).items
-      result.map(&:id).sort.should eq @father.children.where(:name => 'updated_name').map(&:id).sort
+      expect(result).to be_an_array_of(Child).with(2).items
+      expect(result.map(&:id).sort).to eq @father.children.where(:name => 'updated_name').map(&:id).sort
     end
     
   end  

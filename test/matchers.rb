@@ -11,7 +11,7 @@ RSpec::Matchers.define :be_an_array_of do |expected_class|
   chain :items do
   end
   
-  failure_message_for_should do |actual|
+  failure_message do |actual|
     
     if ! actual.is_a?(Array)      
       "expected an array but got #{actual.class.name}: #{actual.inspect}"

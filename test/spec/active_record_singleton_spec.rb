@@ -5,21 +5,21 @@ describe ActiveRecord::Base do
   describe 'one method' do
     
     it 'delegates to ActiveRecord::create_n_instances' do
-      Father.should_receive(:create_1).with(:import, :skip_validation, :factory => [:another_father, :white, :complexion => 'black']).and_return([])
+      expect(Father).to receive(:create_1).with(:import, :skip_validation, :factory => [:another_father, :white, :complexion => 'black']).and_return([])
       Father.one(:import, :skip_validation, :factory => [:another_father, :white, :complexion => 'black'])
     end
     
     it 'returns the newly created instance' do
-      Father.one.should be_instance_of Father
+      expect(Father.one).to be_instance_of Father
     end
        
     it 'uses factory_girl for database insertion by default' do
-      Father.should_receive(:create_instances_by_factory_girl).and_return([])
+      expect(Father).to receive(:create_instances_by_factory_girl).and_return([])
       Father.one
     end
     
     it 'uses activerecord_import for database insertion with :import directive' do
-      Father.should_receive(:create_instances_by_import).and_return([])
+      expect(Father).to receive(:create_instances_by_import).and_return([])
       Father.one :import
     end
     
@@ -36,34 +36,34 @@ describe ActiveRecord::Base do
           
       it 'creates instances correctly' do      
         Father.has @father_data, insertion_method      
-        Father.all.map(&:name).should == @father_data.map{|item| item[:name]}      
+        expect(Father.all.map(&:name)).to eq @father_data.map{|item| item[:name]}      
       end           
       
       it 'works with an explicit factory' do
         Father.has @father_data, insertion_method, :factory => :another_father
-        Father.all.map(&:nickname).uniq.should eq ['Another Nick']
+        expect(Father.all.map(&:nickname).uniq).to eq ['Another Nick']
       end
       
       it 'supports factory_girl traits' do
         Father.has @father_data, insertion_method, :factory => [:father, :white]
-        Father.all.map(&:complexion).uniq.should eq ['white']
+        expect(Father.all.map(&:complexion).uniq).to eq ['white']
       end
       
       it 'supports attribute values in factory' do
         Father.has @father_data, insertion_method, :factory => [:father, :white, :complexion => 'black']
-        Father.all.map(&:complexion).uniq.should eq ['black']
+        expect(Father.all.map(&:complexion).uniq).to eq ['black']
       end
       
       it 'makes values in provided data overide values in factory' do
         @father_data.each{|item| item[:complexion] = 'yellow'}
         Father.has @father_data, insertion_method, :factory => [:father, :white, :complexion => 'black']
-        Father.all.map(&:complexion).uniq.should eq ['yellow']
+        expect(Father.all.map(&:complexion).uniq).to eq ['yellow']
       end
       
       it 'returns the newly created instances' do              
         returned = Father.has @father_data, insertion_method      
-        returned.count.should be @father_data.count
-        returned.each{|item| item.should be_instance_of Father}
+        expect(returned.count).to be @father_data.count
+        returned.each{|item| expect(item).to be_instance_of Father}
       end
     
     end
@@ -71,7 +71,7 @@ describe ActiveRecord::Base do
     describe 'using activerecord_import for database insertion' do
       
       it 'uses activerecord_import for database insertion by default' do        
-        Father.should_receive(:create_instances_by_import)
+        expect(Father).to receive(:create_instances_by_import)
         Father.has @father_data 
       end
       
@@ -80,7 +80,7 @@ describe ActiveRecord::Base do
       end
       
       it 'ignores validation with :skip_validation directive' do
-        expect{ Father.has [{:name => ''}], :skip_validation }.not_to raise_exception(DbContext::FailedImportError)
+        expect{ Father.has [{:name => ''}], :skip_validation }.not_to raise_error
       end
                  
       it_should_behave_like 'a good insertion method for ActiveRecord::has' 
@@ -90,7 +90,7 @@ describe ActiveRecord::Base do
     describe 'using factory_girl for database insertion' do
       
       it 'uses factory_girl for database insertion with :girl directive' do        
-        Father.should_receive(:create_instances_by_factory_girl)
+        expect(Father).to receive(:create_instances_by_factory_girl)
         Father.has @father_data, :girl
       end
       
@@ -110,24 +110,24 @@ describe ActiveRecord::Base do
            
       it 'works with an explicit factory' do
         returned = Father.create_3 insertion_method, :factory => :another_father           
-        returned.count.should be 3
-        returned.map(&:name).uniq.should == ['Another Father']
+        expect(returned.count).to be 3
+        expect(returned.map(&:name).uniq).to eq ['Another Father']
       end
       
       it 'supports factory_girl traits' do
         Father.create_3 insertion_method, :factory => [:father, :white]
-        Father.all.map(&:complexion).uniq.should eq ['white']
+        expect(Father.all.map(&:complexion).uniq).to eq ['white']
       end
       
       it 'supports attribute values in factory' do
         Father.create_3 insertion_method, :factory => [:father, :white, :complexion => 'black']
-        Father.all.map(&:complexion).uniq.should eq ['black']
+        expect(Father.all.map(&:complexion).uniq).to eq ['black']
       end          
       
       it 'returns array of newly created instances' do
         returned = Father.create_3 insertion_method
-        returned.count.should be 3
-        returned.each{|item| item.should be_an_instance_of Father }
+        expect(returned.count).to be 3
+        returned.each{|item| expect(item).to be_an_instance_of Father }
       end           
     
     end
@@ -135,16 +135,16 @@ describe ActiveRecord::Base do
     describe 'using activerecord_import for database insertion' do
       
       it 'uses activerecord_import for database insertion by default' do        
-        Father.should_receive(:create_instances_by_import)
+        expect(Father).to receive(:create_instances_by_import)
         Father.create_3
       end
       
       it 'activates validation by default' do
-        expect{ Father.create_3 :factory => :invalid_father }.to raise_exception(DbContext::FailedImportError)
+        expect{ Father.create_3 :factory => :invalid_father }.to raise_error(DbContext::FailedImportError)
       end
       
       it 'ignores validation with :skip_validation directive' do
-        expect{ Father.create_3 :skip_validation, :factory => :invalid_father }.not_to raise_exception(DbContext::FailedImportError)
+        expect{ Father.create_3 :skip_validation, :factory => :invalid_father }.not_to raise_error
       end
                  
       it_should_behave_like 'a good insertion method for ActiveRecord::create_n_instances' 
@@ -154,7 +154,7 @@ describe ActiveRecord::Base do
     describe 'using factory_girl for database insertion' do
       
       it 'uses factory_girl for database insertion with :girl directive' do        
-        Father.should_receive(:create_instances_by_factory_girl)
+        expect(Father).to receive(:create_instances_by_factory_girl)
         Father.create_3 :girl
       end
       
@@ -171,23 +171,23 @@ describe ActiveRecord::Base do
       
       Father.create_10
       
-      Father.second.should   eq Father.first(2).last
+      expect(Father.second).to   eq Father.first(2).last
       
-      Father.third.should    eq Father.first(3).last
+      expect(Father.third).to    eq Father.first(3).last
       
-      Father.fourth.should   eq Father.first(4).last
+      expect(Father.fourth).to   eq Father.first(4).last
       
-      Father.fifth.should    eq Father.first(5).last
+      expect(Father.fifth).to    eq Father.first(5).last
       
-      Father.sixth.should    eq Father.first(6).last
+      expect(Father.sixth).to    eq Father.first(6).last
       
-      Father.seventh.should  eq Father.first(7).last
+      expect(Father.seventh).to  eq Father.first(7).last
       
-      Father.eighth.should   eq Father.first(8).last
+      expect(Father.eighth).to   eq Father.first(8).last
       
-      Father.ninth.should    eq Father.first(9).last
+      expect(Father.ninth).to    eq Father.first(9).last
       
-      Father.tenth.should    eq Father.first(10).last
+      expect(Father.tenth).to    eq Father.first(10).last
       
     end
     
@@ -201,14 +201,14 @@ describe ActiveRecord::Base do
       
       Father.serial_update :number => [0,1,2,3], :name => ['zero', 'one', 'two']
       
-      Father.first.number.should   be 0
-      Father.second.number.should  be 1
-      Father.third.number.should   be 2
-      Father.fourth.number.should  be 3
+      expect(Father.first.number).to   be 0
+      expect(Father.second.number).to  be 1
+      expect(Father.third.number).to   be 2
+      expect(Father.fourth.number).to  be 3
       
-      Father.first.name.should     eq 'zero'
-      Father.second.name.should    eq 'one'
-      Father.third.name.should     eq 'two'
+      expect(Father.first.name).to     eq 'zero'
+      expect(Father.second.name).to    eq 'one'
+      expect(Father.third.name).to     eq 'two'
       
     end
     
@@ -219,7 +219,7 @@ describe ActiveRecord::Base do
     it 'loads all objects into an array' do
       
       5.times{ FactoryGirl.create :father }
-      Father.a.map(&:id).sort.should eq Father.all.to_a.map(&:id).sort
+      expect(Father.a.map(&:id).sort).to eq Father.all.to_a.map(&:id).sort
       
     end
     
