@@ -78,7 +78,7 @@ module DbContext
     def factory()
       if options[:factory].nil?
         if !self.association_name.nil?
-          [self.association_name.singularize.to_sym]
+          [associated_class().name.underscore.to_sym]
         else
           [self.name.underscore.to_sym]
         end
